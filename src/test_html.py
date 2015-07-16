@@ -90,5 +90,27 @@ class TestHTMLGenerator(unittest.TestCase):
         f.close()
         self.assertEqual(2, count)
 
+    def test_generate_html(self):
+        parser = self.generator.html_parser
+        self.generator.generate_html()
+
+        events = ["onclick", "onsubmit", "onmouseover"]
+        count_js_ext = 0
+        count_js_inline = 0
+        count_js_attr = 0
+        for tag in parser.soup.find_all('script'):
+            if tag.has_attr('src'):
+                count_js_ext += 1
+            else:
+                count_js_inline += 1
+        for listener in events:
+            for tag in parser.soup.find_all(True):
+                if tag.has_attr(listener):
+                    count_js_attr += 1
+        # 3 orig ext_js + 4 orig inline + 1 orig attr
+        self.assertEqual(8, count_js_ext)
+        self.assertEqual(0, count_js_inline)
+        self.assertEqual(0, count_js_attr)
+
 if __name__ == "__main__":
     unittest.main()

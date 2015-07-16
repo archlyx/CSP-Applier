@@ -1,5 +1,9 @@
 import unittest
+import os
+import glob
+import shutil
 import html
+from hashlib import sha1
 from bs4 import BeautifulSoup
 
 class TestHTMLParser(unittest.TestCase):
@@ -33,6 +37,58 @@ class TestHTMLParser(unittest.TestCase):
         external, inline, attr = self.parser.styles
         self.assertEqual(1, len(inline))
         self.assertEqual(3, len(attr))
+
+class TestHTMLGenerator(unittest.TestCase):
+    def setUp(self):
+        parser = html.HTMLParser(BeautifulSoup(open("resources/test.html")))
+
+        external_js, inline_js, attr_js = parser.scripts
+        external_css, inline_css, attr_css = parser.styles
+        filter_list = [external_js[2][2], inline_js[1][1], inline_js[2][1], attr_js[3][2], attr_js[5][2],
+                       inline_css[0][1], attr_css[1][1]]
+
+        file_name = sha1("http://www.test.com").hexdigest()
+        root_dir = "/tmp"
+        root_http_path = "http://127.0.0.1"
+        self.generator = html.HTMLGenerator(parser, filter_list, file_name, root_dir, root_http_path)
+
+    def tearDown(self):
+        shutil.rmtree(self.generator.directory)
+
+    def test_if_dir_created(self):
+        self.assertTrue(os.path.exists(self.generator.directory))
+
+    def test_generate_inline_js(self):
+        external, inline, attr = self.generator.html_parser.scripts
+        self.generator.generate_inline_js(inline)
+        self.assertEquals(4, len(glob.glob1(self.generator.directory, "*_inline.js")))
+
+    def test_generate_attr_js(self):
+        external, inline, attr = self.generator.html_parser.scripts
+        self.generator.generate_attr_js(attr)
+        js_filename = self.generator.directory + self.generator.file_name + "_events.js"
+        self.assertTrue(os.path.isfile(js_filename))
+
+        count = 0
+        f = open(js_filename, 'r')
+        for line in f.readlines():
+            if line.startswith("// CSP-Applier"):
+                count += 1
+        f.close()
+        self.assertEqual(5, count)
+
+    def test_write_css(self):
+        self.generator.write_css()
+        css_filename = self.generator.directory + self.generator.file_name + ".css"
+        self.assertTrue(os.path.isfile(css_filename))
+
+        count = 0
+        f = open(css_filename, 'r')
+        for line in f.readlines():
+            if line.startswith("/* CSP-Applier"):
+                count += 1
+        f.close()
+        self.assertEqual(2, count)
 
 if __name__ == "__main__":
     unittest.main()

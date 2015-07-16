@@ -1,7 +1,8 @@
-from pymongo import MongoClient
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
 
-'''
-## The Class handle MongodDB operations:
+"""
+MongoDriver - The Class handle MongoDB operations:
 1) insert: directly insert dictionary to collection
 
 2) update: given the assumption that record with the hashURL already in, the function take a new record with same
@@ -10,9 +11,12 @@ hashURL and replace the old one
 3) query: return the record (dictionary) with specific urlHash
 
 4) hasURL: See if record with specific urlHash is in the database
-'''
+"""
+
+from pymongo import MongoClient
 
 class MongoDriver:
+
     def __init__(self):
 
         # connect to local host

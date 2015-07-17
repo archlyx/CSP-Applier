@@ -7,11 +7,9 @@ from diff_match_patch import diff_match_patch
 
 class NaiveTemplate:
 
-    def __init__(self, html_candidates=None, incoming_html=None):
+    def __init__(self, incoming_html=None):
         self.js_dict = {}
         self.css_dict = {}
-        if html_candidates:
-            self.html_candidates = html_candidates
 
         if incoming_html:
             self.html = incoming_html
@@ -132,12 +130,4 @@ class NaiveTemplate:
         z = x.copy()
         z.update(y)
         return z
-
-    @staticmethod
-    def two_string_diff(s1, s2):
-        dmp = diff_match_patch()
-        dmp.Diff_Timeout = 16
-        diffs = dmp.diff_main(s1, s2)
-        dmp.diff_cleanupSemantic(diffs)
-        return "".join([s for o, s in diffs if o == 0])
 

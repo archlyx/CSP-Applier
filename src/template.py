@@ -1,5 +1,4 @@
 from hashlib import sha1
-from naive_template import NaiveTemplate
 
 import json
 
@@ -31,51 +30,35 @@ class Template:
     def compare_external_js(self, external_js):
         filter_list = []
         for src, tag, uuid in external_js:
-            if sha1(src) not in self.template['js'].keys():
+            if sha1(src).hexdigest() not in self.template['js'].keys():
                 filter_list.append(uuid)
         return filter_list
 
     def compare_inline_js(self, inline_js):
-        js_skeletons = [v["dynamic_skeleton"] for v in self.template['js'].values() if "dynamic_skeleton" in v.keys()]
         filter_list = []
         for tag, uuid in inline_js:
-            is_block = True
-            content = unicode(tag.string)
-            for skeleton in js_skeletons:
-                intersect = NaiveTemplate.two_string_diff(content, skeleton)
-                if len(intersect) == len(skeleton):
-                    is_block = False
-                    break
-            if is_block:
+            if sha1(unicode(tag.string)).hexdigest() not in self.template['js'].keys():
                 filter_list.append(uuid)
         return filter_list
 
     def compare_attr_js(self, attr_js):
         filter_list = []
         for event, tag, uuid in attr_js:
-            if sha1(unicode(tag.string)) not in self.template['js'].keys():
+            if sha1(unicode(tag.string)).hexdigest() not in self.template['js'].keys():
                 filter_list.append(uuid)
         return filter_list
 
     def compare_external_css(self, external_css):
         filter_list = []
         for href, tag, uuid in external_css:
-            if sha1(href) not in self.template['css'].keys():
+            if sha1(href).hexdigest() not in self.template['css'].keys():
                 filter_list.append(uuid)
         return filter_list
 
     def compare_inline_css(self, inline_css):
-        css_skeletons = [v["dynamic_skeleton"] for v in self.template['css'].values() if "dynamic_skeleton" in v.keys()]
         filter_list = []
         for tag, uuid in inline_css:
-            is_block = True
-            content = unicode(tag.string)
-            for skeleton in css_skeletons:
-                intersect = NaiveTemplate.two_string_diff(content, skeleton)
-                if len(intersect) == len(skeleton):
-                    is_block = False
-                    break
-            if is_block:
+            if sha1(unicode(tag.string)).hexdigest() not in self.template['css'].keys():
                 filter_list.append(uuid)
         return filter_list
 

@@ -1,8 +1,11 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+
 import json
 from hashlib import sha1
 from diff_match_patch import diff_match_patch
 
-class TemplateOld:
+class NaiveTemplate:
 
     def __init__(self, html_candidates=None, incoming_html=None):
         self.js_dict = {}

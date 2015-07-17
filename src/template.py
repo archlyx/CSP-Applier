@@ -1,5 +1,5 @@
 from hashlib import sha1
-from template_old import TemplateOld
+from naive_template import NaiveTemplate
 
 import json
 
@@ -42,7 +42,7 @@ class Template:
             is_block = True
             content = unicode(tag.string)
             for skeleton in js_skeletons:
-                intersect = TemplateOld.two_string_diff(content, skeleton)
+                intersect = NaiveTemplate.two_string_diff(content, skeleton)
                 if len(intersect) == len(skeleton):
                     is_block = False
                     break
@@ -71,7 +71,7 @@ class Template:
             is_block = True
             content = unicode(tag.string)
             for skeleton in css_skeletons:
-                intersect = TemplateOld.two_string_diff(content, skeleton)
+                intersect = NaiveTemplate.two_string_diff(content, skeleton)
                 if len(intersect) == len(skeleton):
                     is_block = False
                     break

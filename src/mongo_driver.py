@@ -1,47 +1,58 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-"""
-MongoDriver - The Class handle MongoDB operations:
-1) insert: directly insert dictionary to collection
-
-2) update: given the assumption that record with the hashURL already in, the function take a new record with same
-hashURL and replace the old one
-
-3) query: return the record (dictionary) with specific urlHash
-
-4) hasURL: See if record with specific urlHash is in the database
-"""
-
 from pymongo import MongoClient
 
 class MongoDriver:
+    """
+    The wrapper for handling the operations of the database. The name of the database
+    is 'CSP', and the collection name is 'template'.
+    """
 
     def __init__(self):
-
-        # connect to local host
         client = MongoClient('localhost', 27017)
-
-        # data base name CSP
         self.db = client.CSP
-
-        # collection name template.py
         self.collection = self.db.template
 
     def insert(self, doc):
-        if not self.has_url(doc["URLHash"]):
+        """
+        Directly insert dictionary to the collection
+
+        :param doc: a dictionary to insert
+        :return: None
+        """
+        if not self.has_key(doc["key"]):
             self.collection.insert(doc)
 
     def update(self, doc):
-        url_hash = doc["URLHash"]
-        if not self.has_url(url_hash):
+        """
+        Given the assumption that record with the key already in,
+        the function take a new record with same key and replace the old one
+
+        :param doc: The new dictionary to replace the old one
+        :return: None
+        """
+        key = doc["key"]
+        if not self.has_key(key):
             return
 
-        self.collection.remove({"URLHash": url_hash})
+        self.collection.remove({"key": key})
         self.insert(doc)
 
-    def query(self, url_hash):
-        return self.collection.find_one({"URLHash": url_hash})
+    def query(self, key):
+        """
+        Return the record (dictionary) with specific urlHash
 
-    def has_url(self, url_hash):
-        return self.collection.find_one({"URLHash": url_hash}) is None
+        :param key: The key string
+        :return: A dictionary
+        """
+        return self.collection.find_one({"key": key})
+
+    def has_key(self, key):
+        """
+        See if record with specific key is in the database
+
+        :param key: The key string
+        :return: Boolean
+        """
+        return self.collection.find_one({"key": key}) is None

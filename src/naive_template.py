@@ -1,7 +1,6 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-import json
 from hashlib import sha1
 
 class NaiveTemplate:
@@ -44,8 +43,10 @@ class NaiveTemplate:
             hash_str = sha1(unicode(tag["style"])).hexdigest()
             self.css_dict.setdefault(hash_str, []).append(self.tag_to_dict(tag))
 
-    def dump_json(self):
-        return json.dumps({"js": self.js_dict, "css": self.css_dict})
+    def generate_template(self):
+        self.build_js()
+        self.build_css()
+        return {"js": self.js_dict, "css": self.css_dict}
 
     def tag_to_dict(self, tag, event=None):
         extra = {"tag": tag.name, "path": self.find_path(tag, [])}

@@ -2,27 +2,14 @@
 # -*- coding: utf-8 -*-
 
 from hashlib import sha1
-import json
 
 class Template:
     def __init__(self, entry=None):
-        self.template = {}
-
-        if entry:
-            self.build_from_db(entry)
-
-    def build_from_db(self, entry):
-        """
-        Convert a JSON string from the database to a dictionary object
-
-        :param entry: An entry from the database
-        :return: None
-        """
-        self.template = json.loads(entry)
+        self.template = entry if entry else {}
 
     def compare(self, html):
         """
-        It compares the given HTML with the template and output the blacklist
+        Compares the given HTML with the template and output the blacklist
 
         :param html: A HTMLParser object
         :return: A list of uuid string
@@ -31,7 +18,7 @@ class Template:
 
     def compare_js(self, scripts):
         """
-        It compares the JS of the given HTML with template and output the blacklist of JS
+        Compares the JS of the given HTML with template and output the blacklist of JS
 
         :param scripts: A tuple of external JS, inline JS and JS as attribute of a tag
         :return: A list of uuid string
@@ -43,7 +30,7 @@ class Template:
 
     def compare_css(self, styles):
         """
-        It compares the CSS of the given HTML with template and output the blacklist of CSS
+        Compares the CSS of the given HTML with template and output the blacklist of CSS
 
         :param styles: A tuple of external CSS, inline CSS and CSS as attribute of a tag
         :return: A list of uuid string
@@ -70,7 +57,7 @@ class Template:
     def compare_attr_js(self, attr_js):
         filter_list = []
         for event, tag, uuid in attr_js:
-            if sha1(unicode(tag.string)).hexdigest() not in self.template['js'].keys():
+            if sha1(unicode(tag[event])).hexdigest() not in self.template['js'].keys():
                 filter_list.append(uuid)
         return filter_list
 
@@ -90,8 +77,8 @@ class Template:
 
     def compare_attr_css(self, attr_css):
         filter_list = []
-        for event, tag, uuid in attr_css:
-            if sha1(unicode(tag.string)) not in self.template['css'].keys():
+        for tag, uuid in attr_css:
+            if sha1(unicode(tag["style"])).hexdigest() not in self.template['css'].keys():
                 filter_list.append(uuid)
         return filter_list
 

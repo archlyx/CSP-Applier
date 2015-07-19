@@ -7,6 +7,9 @@ from uuid import uuid4
 __author__ = 'archlyx'
 
 class HTMLParser:
+    """
+    Analyze the HTML and re-organize the scripts and styles
+    """
 
     __events = [
         # Mouse Events

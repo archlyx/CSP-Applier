@@ -1,5 +1,7 @@
-from hashlib import sha1
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
 
+from hashlib import sha1
 import json
 
 class Template:
@@ -10,19 +12,43 @@ class Template:
             self.build_from_db(entry)
 
     def build_from_db(self, entry):
-        self.template = json.dumps(entry)
+        """
+        Convert a JSON string from the database to a dictionary object
+
+        :param entry: An entry from the database
+        :return: None
+        """
+        self.template = json.loads(entry)
 
     def compare(self, html):
-        return self.compare_js(html) + self.compare_css(html)
+        """
+        It compares the given HTML with the template and output the blacklist
 
-    def compare_js(self, html):
-        external_js, inline_js, attr_js = html.scripts
+        :param html: A HTMLParser object
+        :return: A list of uuid string
+        """
+        return self.compare_js(html.scripts) + self.compare_css(html.styles)
+
+    def compare_js(self, scripts):
+        """
+        It compares the JS of the given HTML with template and output the blacklist of JS
+
+        :param scripts: A tuple of external JS, inline JS and JS as attribute of a tag
+        :return: A list of uuid string
+        """
+        external_js, inline_js, attr_js = scripts
         return self.compare_external_js(external_js) + \
             self.compare_inline_js(inline_js) + \
             self.compare_attr_js(attr_js)
 
-    def compare_css(self, html):
-        external_css, inline_css, attr_css = html.styles
+    def compare_css(self, styles):
+        """
+        It compares the CSS of the given HTML with template and output the blacklist of CSS
+
+        :param styles: A tuple of external CSS, inline CSS and CSS as attribute of a tag
+        :return: A list of uuid string
+        """
+        external_css, inline_css, attr_css = styles
         return self.compare_external_css(external_css) + \
             self.compare_inline_css(inline_css) + \
             self.compare_attr_css(attr_css)

@@ -95,7 +95,7 @@ class TestHTMLGenerator(unittest.TestCase):
 
     def test_generate_html(self):
         parser = self.generator.html_parser
-        self.generator.generate_html()
+        self.generator.rewrite_html()
 
         events = ["onclick", "onsubmit", "onmouseover"]
         count_js_ext = 0

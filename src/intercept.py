@@ -28,9 +28,8 @@ def response(context, flow):
                                                  filter_list, context.file_path, context.http_path)
                 new_content.write_js()
                 new_content.write_css()
-                new_content.generate_html()
+                new_content.rewrite_html()
                 flow.response.content = str(new_content.html_parser.soup)
-
 
 def fetch_template(url, response):
     db = mongo_driver.MongoDriver()

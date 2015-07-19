@@ -5,6 +5,7 @@ import unittest
 import html
 import naive_template
 import template
+import mongo_driver
 from hashlib import sha1
 from bs4 import BeautifulSoup
 
@@ -33,6 +34,27 @@ class TestTemplate(unittest.TestCase):
         for tag, uuid in attr:
             if uuid in filter_list:
                 self.assertTrue(sha1(unicode(tag["style"])).hexdigest() in self.changes)
+
+class TestMongoDriver(unittest.TestCase):
+    def setUp(self):
+        self.mongo = mongo_driver.MongoDriver()
+        parser = html.HTMLParser(BeautifulSoup(open("resources/test.html")))
+        self.template = naive_template.NaiveTemplate(parser).generate_template()
+        self.url = "http://www.test.com"
+
+    def tearDown(self):
+        self.mongo.collection.remove({"key": sha1(self.url).hexdigest()})
+
+    def test_operations(self):
+        """
+        Here only insert/query operations are tested.
+
+        :return: None
+        """
+        self.mongo.insert({"key": sha1(self.url).hexdigest(),
+                           "pattern": self.template})
+        result = self.mongo.query(sha1(self.url).hexdigest())
+        self.assertTrue("pattern" in result.keys())
 
 if __name__ == "__main__":
     unittest.main()

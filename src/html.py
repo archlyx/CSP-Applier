@@ -74,7 +74,7 @@ class HTMLGenerator:
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
 
-    def generate_html(self):
+    def rewrite_html(self):
         external_js, inline_js, attr_js = self.html_parser.scripts
         for src, tag, uuid in external_js:
             if uuid in self.filter_list:

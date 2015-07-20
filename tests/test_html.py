@@ -5,9 +5,9 @@ import unittest
 import os
 import glob
 import shutil
-import html
 from hashlib import sha1
 from bs4 import BeautifulSoup
+from csp_applier import html
 
 class TestHTMLParser(unittest.TestCase):
     def setUp(self):

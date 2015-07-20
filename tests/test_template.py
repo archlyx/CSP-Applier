@@ -2,12 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-import html
-import naive_template
-import template
-import mongo_driver
 from hashlib import sha1
 from bs4 import BeautifulSoup
+from csp_applier import naive_template, html, template, mongo_driver
 
 class TestTemplate(unittest.TestCase):
     def setUp(self):

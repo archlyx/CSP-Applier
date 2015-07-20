@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-import html
-import naive_template
 from hashlib import sha1
+
 from bs4 import BeautifulSoup
+
+from csp_applier import naive_template, html
+
 
 class TestNaiveTemplate(unittest.TestCase):
     def setUp(self):

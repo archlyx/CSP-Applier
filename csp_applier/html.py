@@ -4,8 +4,6 @@
 import os
 from uuid import uuid4
 
-__author__ = 'archlyx'
-
 class HTMLParser:
     """
     Analyze the HTML and re-organize the scripts and styles
@@ -81,7 +79,7 @@ class HTMLGenerator:
                 tag.extract()
         for tag, uuid in inline_js:
             if uuid not in self.filter_list:
-                src = self.http_path + self.file_name + "_" + uuid + ".js"
+                src = self.http_path + self.file_name + "_" + uuid + "_inline.js"
                 new_tag = self.html_parser.soup.new_tag("script", src=src)
                 tag.insert_after(new_tag)
             tag.extract()
@@ -97,7 +95,7 @@ class HTMLGenerator:
         for tag, uuid in attr_css:
             del tag["style"]
 
-        new_script = self.html_parser.soup.new_tag("script", src=self.http_path + self.file_name + "_inline.js")
+        new_script = self.html_parser.soup.new_tag("script", src=self.http_path + self.file_name + "_events.js")
         self.html_parser.soup.body.append(new_script)
 
         new_style = self.html_parser.soup.new_tag("link", rel="stylesheet", type="text/css",
@@ -125,7 +123,7 @@ class HTMLGenerator:
                 f.close()
 
     def generate_attr_js(self, attr_js):
-        file_path = self.directory + self.file_name + "_events" + ".js"
+        file_path = self.directory + self.file_name + "_events.js"
         f = open(file_path, 'w')
         f.write('\r\n')
         f.write("document.addEventListener('DOMContentLoaded', function () {")

@@ -32,7 +32,7 @@ class HTMLParser:
         for tag in self.soup.find_all('script'):
             if tag.has_attr('src'):
                 external_js.append((tag['src'], tag, uuid4().hex))
-            else:
+            elif tag["type"] != "text/html":
                 inline_js.append((tag, uuid4().hex))
 
         attr_js = []

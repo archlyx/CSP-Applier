@@ -3,7 +3,7 @@
 
 import sys
 sys.path.append(".")
-import time
+
 from hashlib import sha1
 from bs4 import BeautifulSoup
 from libmproxy.protocol.http import decoded
@@ -17,8 +17,11 @@ def start(context, argv):
 
 def response(context, flow):
     with decoded(flow.response):  # Automatically decode gzipped responses.
-        soup = BeautifulSoup(flow.response.content)
-        if soup.head:
+        if flow.response.headers["Content-Type"] == ["text/html"]:
+            soup = BeautifulSoup(flow.response.content)
+            f = open("test.text", "w")
+            f.write(flow.request.url + "\n")
+            f.close()
             html_parser = html.HTMLParser(soup)
             filter_list = []
             # pattern = fetch_template(flow.request.get_url(), flow.response)

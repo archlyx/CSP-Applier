@@ -3,7 +3,7 @@
 ## Usage:
 
 ```bash
-mitmproxy -s "intercept.py http\_path file\_path"
+mitmproxy -s "intercept.py http_path file_path"
 ```
 
 * `http_path`: The HTTPS server address.

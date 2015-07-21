@@ -11,9 +11,11 @@
 4. Add the certificate of mitmproxy to the trust list of the browser. Usually the cert file
    is `~/.mitmproxy/mitmproxy-ca-cert.pem`.
 5. Run mitmproxy use the following command:
-```bash
-mitmproxy -s "intercept.py http_path file_path"
-```
+
+        ```bash
+        mitmproxy -s "intercept.py http_path file_path"
+        ```
+    
     * `http_path`: The HTTPS server address, e.g., `https://127.0.0.1:12345`
     * `file_path`: The path of where the JS/CSS files are saved on the machine.
       The Https server should run at here, e.g., `/tmp/csp`

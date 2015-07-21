@@ -19,7 +19,7 @@
     * `http_path`: The Https server address, e.g., `https://127.0.0.1:12345`
     * `file_path`: The path of where the JS/CSS files are saved on the machine.
       The Https server should run at here, e.g., `/tmp/csp`
-6. Open browser and change the Http/Https proxy to 127.0.0.1, and port is 8080.
+6. Open browser and change the Http/Https proxy to `127.0.0.1`, and port is `8080`.
 7. Browse certain websites and the new JS/CSS files should be generated in `/tmp/csp`
 
 ## Generate SSL Certificate

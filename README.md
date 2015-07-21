@@ -1,6 +1,8 @@
 # CSP-Applier
 
-## Usage:
+## Introduction
+
+## Usage
 
 1. Create a directory where the generated JS/CSS files should be saved (e.g. `/tmp/csp`)
 2. Start the daemon of database for templates.

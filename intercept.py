@@ -21,6 +21,7 @@ def response(context, flow):
             soup = BeautifulSoup(flow.response.content)
             html_parser = html.HTMLParser(soup)
             filter_list = []
+            # TODO: If database daemon is running, uncomment these lines
             # pattern = fetch_template(flow.request.host)
             # if pattern:
             #     filter_list = pattern.compare(html_parser)

@@ -11,12 +11,12 @@
 4. Add the certificate of mitmproxy to the trust list of the browser. Usually the cert file
    is `~/.mitmproxy/mitmproxy-ca-cert.pem`.
 5. Run mitmproxy use the following command:
-```bash
-mitmproxy -s "intercept.py http_path file_path"
-```
+    ```bash
+    mitmproxy -s "intercept.py http_path file_path"
+    ```
     * `http_path`: The HTTPS server address, e.g., `https://127.0.0.1:12345`
-    * `file_path`: The path of where the JS/CSS files are saved on the machine. The Https server should run at here, e.g., `/tmp/csp`
-
+    * `file_path`: The path of where the JS/CSS files are saved on the machine.
+      The Https server should run at here, e.g., `/tmp/csp`
 6. Open browser and change the Http/Https proxy to 127.0.0.1, and port is 8080.
 7. Browse certain websites and the new JS/CSS files should be generated in `/tmp/csp`
 

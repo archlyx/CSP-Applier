@@ -19,23 +19,20 @@ def response(context, flow):
     with decoded(flow.response):  # Automatically decode gzipped responses.
         if flow.response.headers["Content-Type"] == ["text/html"]:
             soup = BeautifulSoup(flow.response.content)
-            f = open("test.text", "w")
-            f.write(flow.request.url + "\n")
-            f.close()
             html_parser = html.HTMLParser(soup)
             filter_list = []
-            # pattern = fetch_template(flow.request.get_url(), flow.response)
+            # pattern = fetch_template(flow.request.host)
             # if pattern:
             #     filter_list = pattern.compare(html_parser)
 
-            new_content = html.HTMLGenerator(html_parser, filter_list, sha1(flow.request.url).hexdigest(),
+            new_content = html.HTMLGenerator(html_parser, filter_list, sha1(flow.request.host).hexdigest(),
                                              context.file_path, context.http_path)
             new_content.write_js()
             new_content.write_css()
             new_content.rewrite_html()
             flow.response.content = str(new_content.html_parser.soup)
 
-def fetch_template(url, response):
+def fetch_template(url):
     db = mongo_driver.MongoDriver()
     template_string = db.query(sha1(url).hexdigest())
     if template_string:

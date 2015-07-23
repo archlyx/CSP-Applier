@@ -16,16 +16,25 @@ def start(context, argv):
     context.http_path, context.file_path = argv[1], argv[2]
 
 def response(context, flow):
-    with decoded(flow.response):  # Automatically decode gzipped responses.
-        if flow.response.headers["Content-Type"] == ["text/html"]:
+    # f1 = open("ctype.txt", "a")
+    # f1.write(flow.response.headers.get_first("content-type", ""))
+    # f1.write('\n')
+    # f1.close()
+    if flow.response.headers.get_first("content-type", "").startswith("text/html"):
+        with decoded(flow.response):  # Automatically decode gzipped responses.
             soup = BeautifulSoup(flow.response.content)
             html_parser = html.HTMLParser(soup)
             filter_list = []
+    
+            # f = open("url.text", "a")
+            # f.write(flow.request.url)
+            # f.write('\n')
+            # f.close()
             # TODO: If database daemon is running, uncomment these lines
             # pattern = fetch_template(flow.request.host)
             # if pattern:
             #     filter_list = pattern.compare(html_parser)
-
+    
             new_content = html.HTMLGenerator(html_parser, filter_list, sha1(flow.request.host).hexdigest(),
                                              context.file_path, context.http_path)
             new_content.write_js()

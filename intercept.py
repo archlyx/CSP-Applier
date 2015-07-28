@@ -20,27 +20,35 @@ def response(context, flow):
     # f1.write(flow.response.headers.get_first("content-type", ""))
     # f1.write('\n')
     # f1.close()
-    if flow.response.headers.get_first("content-type", "").startswith("text/html"):
+    if "text/html" in flow.response.headers.get_first("content-type", ""):
         with decoded(flow.response):  # Automatically decode gzipped responses.
+            f = open(context.file_path + "/url.text", "a")
+            f.write("------------------" + "\n")
+            f.write(flow.request.url)
+            f.write('\n')
+
             soup = BeautifulSoup(flow.response.content)
-            html_parser = html.HTMLParser(soup)
-            filter_list = []
-    
-            # f = open("url.text", "a")
-            # f.write(flow.request.url)
-            # f.write('\n')
-            # f.close()
-            # TODO: If database daemon is running, uncomment these lines
-            # pattern = fetch_template(flow.request.host)
-            # if pattern:
-            #     filter_list = pattern.compare(html_parser)
-    
-            new_content = html.HTMLGenerator(html_parser, filter_list, sha1(flow.request.host).hexdigest(),
-                                             context.file_path, context.http_path)
-            new_content.write_js()
-            new_content.write_css()
-            new_content.rewrite_html()
+            try:
+                html_parser = html.HTMLParser(soup)
+                filter_list = []
+        
+                # TODO: If database daemon is running, uncomment these lines
+                # pattern = fetch_template(flow.request.host)
+                # if pattern:
+                #     filter_list = pattern.compare(html_parser)
+        
+                new_content = html.HTMLGenerator(html_parser, filter_list, sha1(flow.request.host).hexdigest(),
+                                                 context.file_path, context.http_path)
+                new_content.write_js()
+                new_content.write_css()
+                new_content.rewrite_html()
+            except:
+                f.write("Unexpected error: " + sys.exc_info()[0])
+
             flow.response.content = str(new_content.html_parser.soup)
+
+            f.write('\n')
+            f.close()
 
 def fetch_template(url):
     db = mongo_driver.MongoDriver()

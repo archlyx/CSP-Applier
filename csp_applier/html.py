@@ -32,7 +32,7 @@ class HTMLParser:
         for tag in self.soup.find_all('script'):
             if tag.has_attr('src'):
                 external_js.append((tag['src'], tag, uuid4().hex))
-            elif tag["type"] != "text/html":
+            elif (not tag.has_attr("type")) or tag["type"] != "text/html":
                 inline_js.append((tag, uuid4().hex))
 
         attr_js = []
@@ -81,8 +81,9 @@ class HTMLGenerator:
             if uuid not in self.filter_list:
                 src = self.http_path + self.file_name + "_" + uuid + "_inline.js"
                 new_tag = self.html_parser.soup.new_tag("script", src=src)
-                tag.insert_after(new_tag)
-            tag.extract()
+                tag.replace_with(new_tag)
+            else:
+                tag.extract()
         for event, tag, uuid in attr_js:
             del tag[event]
 

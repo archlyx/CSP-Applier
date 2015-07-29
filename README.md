@@ -27,7 +27,7 @@
 ## Generate SSL Certificate
 
 ```bash
-openssl req -new -x509 -keyout server.pem -out server.pem -days 365 -nodes
+openssl req -new -x509 -keyout key.pem -out server.pem -days 365 -nodes
 ```
 
 * Generate the `.pem` file using the command above

@@ -1,7 +1,9 @@
 from bs4 import BeautifulSoup
+from template import getTreesForDomainFromDB
 from bs4 import NavigableString
 from urlparse import urlparse
 from uuid import uuid4
+from trees import matchTreesFromDomainWithScript
 import logging, sys, re, tldextract, json, urllib, hashlib, os, time
 
 logger = logging.getLogger('HTMLParser')
@@ -27,7 +29,7 @@ class DOMAnalyzer:
         "onblur", "onchange", "onfocus", "onreset", "onselect", "onsubmit"
     ]
 
-	def __init__(self, soup, local_url, dest_dir, page_url='undefined'):
+	def __init__(self, soup, local_url, dest_dir, trees={}, page_url='undefined'):
 		self.soup = soup
 		self.inlines = {}
 		self.externals = []
@@ -37,6 +39,7 @@ class DOMAnalyzer:
 			local_url if (local_url[-1]=='/') else (local_url+'/')
 		self.dest_dir = dest_dir
 		self.attr_js = []
+		self.trees = trees
 
 		m = hashlib.md5()
 		m.update(page_url)
@@ -206,6 +209,19 @@ class DOMAnalyzer:
 
 	# TODO: not implemented
 	def _check_inline_script(self, content):
+		t1 = time.time()
+		domain = self._get_effective_domain(self.url)
+		if domain in self.trees:
+			allowed, failed, tree = matchTreesFromDomainWithScript(domain, content, self.trees[domain])
+			logger.info("1 allowed: %d, failed: %d" %(len(allowed), len(failed)))
+		else:
+			allowed, failed, tree = matchTreesFromDomainWithScript(domain, content)
+			self.trees[domain] = tree
+			logger.info("2 allowed: %d, failed: %d" %(len(allowed), len(failed)))
+		t2 = time.time()
+		logger.debug("_check_inline_script time: %f" %(t2 - t1))
+		#for sc in failed:
+		#	logger.debug('[FAILED] script: %s [END]' %(sc))
 		return content
 
 	def _write_external_script(self, file_name, contents):
@@ -236,17 +252,23 @@ class DOMAnalyzer:
 
 def main():
 	t1 = time.time()
-	#tldextract.TLDExtract(suffix_list_url=False)
-	#tldextract.extract('http://www.cnn.com')
-	t2 = time.time()
+	url = 'https://www.cnn.com'
+	tldextract.TLDExtract(suffix_list_url=False)
+	o = tldextract.extract(url)
+	domain = o.domain + '.' + o.suffix
+	domain_trees = getTreesForDomainFromDB(domain)
+	trees = {}
+	trees[domain] = domain_trees
 	contents = open(sys.argv[1]).read()
 	#print contents
+	logger.debug('url:%s domain:%s' %(url, domain))
+	t2 = time.time()
 	try:
 		soup = BeautifulSoup( contents, "html5lib")
 	except Exception as e:
 		soup = BeautifulSoup( contents, 'lxml')
 	analyzer = DOMAnalyzer(soup, \
-		'https://localhost:4433/allowed-resources/', './js_repository/', 'https://www.sina.com')
+		'https://localhost:4433/allowed-resources/', './js_repository/', trees, url)
 	analyzer.process()
 	t3 = time.time()
 	logger.debug("time difference: DOM:%f, whole:%f" %((t3-t2), (t3-t1)))
@@ -254,7 +276,7 @@ def main():
 	#analyzer.process()
 	new_tag = soup.new_tag("script", src="https://localhost:4433/libs/client_lib.js")
 	analyzer.soup.head.insert(1, new_tag)
-	print analyzer.soup.prettify().encode('utf-8')
+	#print analyzer.soup.prettify().encode('utf-8')
 	#print soup.prettify().encode('utf-8')
 
 if __name__ == "__main__":

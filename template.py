@@ -1,6 +1,7 @@
 from db_client import fetchTrees
 from db_client import fetchScripts
 from db_client import storeTree
+from db_client import removeTree
 from script_analyzer import analyzeJSCodes
 from script_analyzer import analyzeJSCodesFinerBlock
 from script_analyzer import analyzeJSON
@@ -12,7 +13,7 @@ from utilities import deprecated
 from base64 import b64encode
 from base64 import b64decode
 
-import sys, os, re, json, hashlib, uuid
+import sys, os, re, json, hashlib, uuid, logging
 
 '''
   Exports:
@@ -20,6 +21,15 @@ import sys, os, re, json, hashlib, uuid
     2. class TemplateTree
     3. getTreesForDomainFromDB
 '''
+logger = logging.getLogger('HTMLParser')
+hdlr = logging.FileHandler('./logs/html_parser2.log')
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+hdlr.setFormatter(formatter)
+consoleHandler = logging.StreamHandler()
+consoleHandler.setFormatter(formatter)
+logger.addHandler(hdlr) 
+logger.addHandler(consoleHandler)
+logger.setLevel(logging.DEBUG)
 
 class TemplateTree():
   def __init__(self, nodes, key):
@@ -432,6 +442,83 @@ def getTreesForDomainFromDB(domain):
       displayErrorMsg("getTreesForDomainFromDB",str(e))
   
   return tree_dict  
+
+
+def updateTreeForDomain(url, domain, new_tree):
+  key = new_tree.key
+  old_tree = None
+  tree_dict = getTreesForDomainFromDB(domain)
+  if tree_dict and (key in tree_dict):
+    old_tree = tree_dict[key]
+
+  nodes = new_tree.nodes
+  try:
+    for i in range(len(nodes)):
+      if nodes[i].tag == "String":
+        val = nodes[i].value
+        if old_tree:
+          old_tree.string_types[str(i)].update(val)
+          logger.info('updateTreeForDomain update old_tree string node %s' %val)
+        else:
+          node_pattern = generateNodePattern(val)
+          new_tree.string_types_str[str(i)] = node_pattern.dumps()
+          logger.info('updateTreeForDomain add new_tree string node %s' %val)
+      if nodes[i].tag == "Object":
+        val = nodes[i].value
+        rs = extractObjectValues(val)
+        type_dict = {}
+        for k in rs:
+          #encoded_val = [b64encode(x) for x in rs[k]]
+          node_pattern = generateNodePattern(rs[k])
+          type_dict[k] = node_pattern.dumps()
+          if old_tree:
+            logger.info('updateTreeForDomain update old_tree object node %s' %str(type_dict) )
+            if not k in old_tree.object_types[str(i)]:
+              old_tree.object_types[str(i)][k] = node_pattern
+            else:
+              if isinstance(rs[k], list):
+                for item in rs[k]:
+                  old_tree.object_types[str(i)][k].update(item)
+              else:
+                old_tree.object_types[str(i)][k].update(rs[k])
+        logger.info('updateTreeForDomain add new_tree object node %s' %str(type_dict) )
+        new_tree.object_types_str[str(i)] = type_dict
+      if nodes[i].tag == "Array":
+        val = arrayToDict(nodes[i].value)
+        logger.debug('updateTreeForDomain Array val typename:%s' %(val.__class__.__name__))
+        rs = extractObjectValues(val)
+        logger.debug('updateTreeForDomain Array rs typename:%s' %(rs.__class__.__name__))
+        type_dict = {}
+        for k in rs:
+          #encoded_val = [b64encode(x) for x in rs[k]]
+          logger.debug('updateTreeForDomain typename:%s' %(rs[k].__class__.__name__))
+          node_pattern = generateNodePattern(rs[k])
+          type_dict[k] = node_pattern.dumps()
+          if old_tree:
+            logger.info('updateTreeForDomain update old_tree array node %s' %str(type_dict) )
+            if not k in old_tree.array_types[str(i)]:
+              old_tree.array_types[str(i)][k] = node_pattern
+            else:
+              if isinstance(rs[k], list):
+                for item in rs[k]:
+                  old_tree.array_types[str(i)][k].update(item)
+              else:
+                old_tree.array_types[str(i)][k].update(rs[k])
+        logger.info('updateTreeForDomain add new_tree array node %s' %str(type_dict) )
+        new_tree.array_types_str[str(i)] = type_dict
+  except Exception as e:
+    logger.error('error in updateTreeForDomain script:%s error:%s' %(nodes[i].tag, str(e)) )
+    return False
+
+  if old_tree:
+    removeTree(domain, key)
+    storeTree(url, key, old_tree.dumps())
+    logger.info('[updateTreeForDomain] done updating old tree!')
+  else:
+    storeTree(url, key, new_tree.dumps())
+    logger.info('[updateTreeForDomain] done storing new tree!')
+  return True
+
 
 def getTrees(path):
   f = open(path)

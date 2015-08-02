@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 from template import getTreesForDomainFromDB
+from template import updateTreeForDomain
 from bs4 import NavigableString
 from urlparse import urlparse
 from uuid import uuid4
@@ -29,7 +30,7 @@ class DOMAnalyzer:
         "onblur", "onchange", "onfocus", "onreset", "onselect", "onsubmit"
     ]
 
-	def __init__(self, soup, local_url, dest_dir, trees={}, page_url='undefined'):
+	def __init__(self, soup, local_url, dest_dir, trees={}, page_url='undefined', enable_update = False):
 		self.soup = soup
 		self.inlines = {}
 		self.externals = []
@@ -40,6 +41,7 @@ class DOMAnalyzer:
 		self.dest_dir = dest_dir
 		self.attr_js = []
 		self.trees = trees
+		self.enable_update = enable_update
 
 		m = hashlib.md5()
 		m.update(page_url)
@@ -212,17 +214,27 @@ class DOMAnalyzer:
 		t1 = time.time()
 		domain = self._get_effective_domain(self.url)
 		if domain in self.trees:
-			allowed, failed, tree = matchTreesFromDomainWithScript(domain, content, self.trees[domain])
+			allowed, failed, tree, failed_trees = matchTreesFromDomainWithScript(domain, content, self.trees[domain])
+			if allowed == None or failed == None:
+				return content
 			logger.info("1 allowed: %d, failed: %d" %(len(allowed), len(failed)))
 		else:
-			allowed, failed, tree = matchTreesFromDomainWithScript(domain, content)
+			allowed, failed, tree, failed_trees = matchTreesFromDomainWithScript(domain, content)
 			self.trees[domain] = tree
+			if allowed == None or failed == None:
+				return content
 			logger.info("2 allowed: %d, failed: %d" %(len(allowed), len(failed)))
 		t2 = time.time()
 		logger.debug("_check_inline_script time: %f" %(t2 - t1))
-		#for sc in failed:
-		#	logger.debug('[FAILED] script: %s [END]' %(sc))
+		
+		if self.enable_update:
+			for tree in failed_trees:
+				if not updateTreeForDomain(self.url, domain, tree):
+					logger.error("failed to update tree!!!")
+				else:
+					logger.info("succeeded to update tree!!!")
 		return content
+		#return '\r\n'.join(allowed)
 
 	def _write_external_script(self, file_name, contents):
 		try:

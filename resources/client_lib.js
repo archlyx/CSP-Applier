@@ -14,7 +14,8 @@ var csp_client_lib = (function() {
 
   var csp_base64encode_script = function (script) {
     try{
-      return btoa(script);
+      return encodeURI(script);
+      //return encodeURI(btoa(script));
     }
     catch(e){
       console.log('failed to encode base64 script '+e);
@@ -38,16 +39,16 @@ var csp_client_lib = (function() {
     try{
       var p_node = old_node.parentElement;
       if (p_node===null) {
-        console.log("1 old node: "+old_node+" "+old_node.insert_before);
+        //console.log("1 old node: "+old_node+" "+old_node.insert_before);
         //old_node.insert_before(new_node);
         document.getElementsByTagName('head')[0].appendChild(new_node);
       }
       else {
-        console.log("2 old node: "+old_node+" "+old_node.insert_before);
+        //console.log("2 old node: "+old_node+" "+old_node.insert_before);
          p_node.replaceChild(new_node, old_node);
       }
      
-      console.log('done replacing node')
+      //console.log('done replacing node')
     }
     catch (e) {
       console.log('erorr in csp_replace_node '+ e)
@@ -70,9 +71,15 @@ var csp_client_lib = (function() {
     }
     var old_node  = old_script_node;
     var xmlhttp = new XMLHttpRequest();   // new HttpRequest instance 
+    //console.log("debug inline: "+old_script_node.innerHTML);
+    
     var encoded_script = csp_base64encode_script(old_script_node.innerHTML);
+    //console.log("debug encoded inline: "+encoded_script.length)
     var file_name =  'dynamic_'+csp_parse_url(page_url) + '_' +Date.now()+'.js';
-    var params = "file_name="+file_name+"&script=" + encoded_script;
+    //var params = "file_name="+file_name+"&script=" + encoded_script;
+    var obj = {file_name:file_name, script:encodeURI(old_script_node.innerHTML)};
+    var params = JSON.stringify(obj);
+    //console.log("params:"+params);
     var new_node;
 
     var external_js_ready_callback = function () {
@@ -95,8 +102,10 @@ var csp_client_lib = (function() {
     };
 
     xmlhttp.open("POST", csp_build_external_js_url, true);
-    xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    //xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xmlhttp.setRequestHeader("Content-type", "application/json")
     xmlhttp.onreadystatechange = external_js_ready_callback;
+    
     xmlhttp.send(params);
   };
 
@@ -111,7 +120,7 @@ var csp_client_lib = (function() {
             if (node.innerHTML === "") { continue; }
             script = csp_match_contents(node.innerHTML);
             if (script === "" ) { continue; }
-            console.log("detect one added script node");
+            //console.log("detect one added script node");
             csp_rewrite_inline_script(node);
 
           }

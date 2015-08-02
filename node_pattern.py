@@ -1,4 +1,4 @@
-import sys, re, tldextract, json, urllib
+import sys, re, tldextract, json, urllib, logging
 from enum import Enum
 from urlparse import urlparse
 from base64 import b64encode
@@ -24,7 +24,7 @@ class StringType(Enum):
   INSUFFICIENT = "INSUFFICIENT"
 
 StringTypeDict = {\
-	'INSUFFICIENT' : StringType.INSUFFICIENT,
+	'INSUFFICIENT' : StringType.INSUFFICIENT,\
   'CONST' : StringType.CONST, \
   'ENUM' : StringType.ENUM, \
   'NUMBER' : StringType.NUMBER, \
@@ -36,6 +36,16 @@ global_count = {'INSUFFICIENT': 0, \
 								'TARGET_VAL_NULL':0, \
 								'PASS':0,'FAIL':0}
 
+logger = logging.getLogger('HTMLParser')
+hdlr = logging.FileHandler('./logs/html_parser2.log')
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+hdlr.setFormatter(formatter)
+consoleHandler = logging.StreamHandler()
+consoleHandler.setFormatter(formatter)
+logger.addHandler(hdlr) 
+logger.addHandler(consoleHandler)
+logger.setLevel(logging.DEBUG)
+
 class NodePattern():
 	def __init__(self, tp=StringType.INSUFFICIENT, val=None):
 		self.tp = tp
@@ -46,12 +56,13 @@ class NodePattern():
 
 	def match(self, val_str):
 		if val_str.replace('"','').replace("'",'') == '':
-			print "[COMPARE] TARGET VAL is empty "
+			#logger.debug("[COMPARE] TARGET VAL is empty ") 
 			global_count['TARGET_VAL_NULL'] += 1
 			return True
 		if self.tp == StringType.INSUFFICIENT:
 			if val_str in self.val:
-				print "[COMPARE] MATCH INSUFFICIENT"
+				#logger.debug("[COMPARE] MATCH INSUFFICIENT")
+				pass
 			else:
 				debug_str = "Length:[%d][%s] Vals:[%s]" %(len(self.val),str(self.val), str(self.val))
 				#print "[COMPARE] INSUFFICIENT is insufficient: %s" %debug_str
@@ -59,38 +70,101 @@ class NodePattern():
 			return True
 		elif self.tp == StringType.CONST:
 			if self.val != val_str:
-				print '[COMPARE] CONST error %s vs %s ' %(str(self.val), str(val_str))
+				logger.debug('[COMPARE] CONST error %s vs %s ' %(str(self.val), str(val_str)))
 				global_count['FAIL'] += 1
 				return False
 		elif self.tp == StringType.ENUM:
 			if val_str not in self.val:
-				print "[COMPARE] ENUM error %s not in %s " %(str(val_str), str(self.val))
+				logger.debug("[COMPARE] ENUM error %s not in %s " %(str(val_str), str(self.val)))
 				global_count['FAIL'] += 1
 				return False
 		elif self.tp == StringType.NUMBER:
 			if not stringIsNumeric(val_str):
-				print "[COMPARE] NUMBER error %s not a number " %(val_str)
+				logger.debug("[COMPARE] NUMBER error %s not a number " %(val_str))
 				global_count['FAIL'] += 1
 				return False
 		elif self.tp == StringType.QUOTED_NUMBER:
 			if not stringIsNumeric(val_str[1:-1]):
-				print "[COMPARE] QUOTED_NUMBER error %s not a quoted number " %(val_str)
+				logger.debug("[COMPARE] QUOTED_NUMBER error %s not a quoted number " %(val_str))
 				global_count['FAIL'] += 1
 				return False
 		elif self.tp == StringType.URI:
 			d_set = getDomainsFromString(val_str)
 			if not d_set.issubset(self.val):
-				print "[COMPARE] URI error %s not a subset of %s " %(str(val_str), str(self.val) )
+				logger.debug("[COMPARE] URI error %s not a subset of %s " %(str(val_str), str(self.val) ))
 				global_count['FAIL'] += 1
 				return False
 		elif self.tp == StringType.OTHER:
 			if not self.val.check(val_str):
-				print "[COMPARE] OTHER error %s not meeting rq of %s" \
-					%(val_str, self.val.dumps())
+				logger.debug("[COMPARE] OTHER error %s not meeting rq of %s" \
+					%(val_str, self.val.dumps()))
 				global_count['FAIL'] += 1
 				return False
 		global_count['PASS'] += 1
 		return True
+
+	def update(self, val_str):
+		try:
+			if val_str.replace('"','').replace("'",'') == '':
+				logger.info("[UPDATE] TARGET VAL is empty [%s] "%val_str)
+				return
+			if self.tp == StringType.INSUFFICIENT:
+				self.val.append(val_str)
+				if len(self.val) > MIN_SAMPLE_SIZE:
+					new_node = generateNodePattern(self.val)
+					self.tp = new_node.tp
+					self.val = new_node.val
+					logger.info("[UPDATE] INSUFFICIENT changes to %s " %self.tp)
+				else:
+					logger.info("[UPDATE] STILL INSUFFICIENT")
+				return 
+			elif self.tp == StringType.CONST:
+				if self.val != val_str:
+					self.tp = StringType.ENUM
+					self.val = set([self.val, val_str])
+					logger.info('[UPDATE] CONST to ENUM %s ' % str(self.val) )
+				return
+			elif self.tp == StringType.ENUM:
+				if val_str not in self.val:
+					logger.info('[UPDATE] ENUM add a member %s %s' % (str(self.val),str(val_str)) )
+					self.val.add(val_str)
+				return
+			elif self.tp == StringType.NUMBER:
+				if not stringIsNumeric(val_str):
+					if isinstance(self.val, list):
+						self.val.append(val_str)
+						new_node = generateNodePattern(self.val)
+						self.tp = new_node.tp
+						self.val = new_node.val
+					else:
+						self.tp = StringType.CONST
+						self.val = val_str
+					logger.info('[UPDATE] NUMBER to %s ' % str(self.tp) )
+				return				
+			elif self.tp == StringType.QUOTED_NUMBER:
+				if not stringIsNumeric(val_str[1:-1]):
+					if isinstance(self.val, list):
+						self.val.append(val_str)
+						new_node = generateNodePattern(self.val)
+						self.tp = new_node.tp
+						self.val = new_node.val
+					else:
+						self.tp = StringType.CONST
+						self.val = val_str
+					logger.info('[UPDATE] QUOTED_NUMBER to %s ' % str(self.tp) )
+				return	
+			elif self.tp == StringType.URI:
+				d_set = getDomainsFromString(val_str)
+				self.val = self.val.union(d_set)
+				logger.info('[UPDATE] updated URI DOMAIN SET to %s ' % str(self.val) )
+				return
+			elif self.tp == StringType.OTHER:
+				if not self.val.check(val_str):
+					self.val.update(val_str)
+					return 
+			return
+		except Exception as e:
+			logger.error('error in NodePattern.update: %s %s' %(val_str, str(e)))
 
 	def loads(self, data_str):
 		try:
@@ -117,9 +191,29 @@ class NodePattern():
 				decoded_vals = [b64decode(x) for x in elems]
 				self.val = decoded_vals
 			elif tp == StringType.NUMBER:
-				self.val = ""
+				try:
+					elems = obj['val'].split(',')
+					if len(elems) == 1:
+						self.val = ""
+					else:
+						decoded_vals = [b64decode(x) for x in elems]
+						self.val = decoded_vals
+				except Exception as e:
+					displayErrorMsg('NodePattern.loads', 'error loading %s NUMBER %s' \
+						%(obj['val'], str(e)) )
+					self.val=""
 			elif tp == StringType.QUOTED_NUMBER:
-				self.val = ""
+				try:
+					elems = obj['val'].split(',')
+					if len(elems) == 1:
+						self.val = ""
+					else:
+						decoded_vals = [b64decode(x) for x in elems]
+						self.val = decoded_vals
+				except Exception as e:
+					displayErrorMsg('NodePattern.loads', 'error loading %s QUOTED_NUMBER %s' \
+						%(obj['val'], str(e)) )
+					self.val=""
 			elif tp == StringType.URI:
 				elems = obj['val'].split(',')
 				decoded_vals = [b64decode(x) for x in elems]
@@ -176,10 +270,20 @@ class NodePattern():
 			obj['val'] = val
 		elif tp == StringType.NUMBER:
 			obj['type'] = "NUMBER"
-			obj['val'] = ''
+			if isinstance(self.val, list):
+				encoded_vals = [b64encode(x) for x in self.val]
+				val = ','.join(encoded_vals)
+				obj['val'] = val
+			else:
+				obj['val'] = ''
 		elif tp == StringType.QUOTED_NUMBER:
 			obj['type'] = "QUOTED_NUMBER"
-			obj['val'] = ''
+			if isinstance(self.val, list):
+				encoded_vals = [b64encode(x) for x in self.val]
+				val = ','.join(encoded_vals)
+				obj['val'] = val
+			else:
+				obj['val'] = ''
 		elif tp == StringType.URI:
 			encoded_vals = [b64encode(x) for x in self.val]
 			val = ','.join(encoded_vals)
@@ -229,6 +333,38 @@ class Pattern():
 			print "%s contains not allowed domains" %string
 			return False
 		return True
+
+	def update(self, string):
+		try:
+			string = string.lower()
+			if self.fixed_len != -1 and self.fixed_len != len(string):
+				self.fixed_len = -1
+				logger.info("[UPDATE PATTERN] removed length req " )
+			if self.min_len != -1 and len(string) < self.min_len:
+				self.min_len = -1
+				logger.info("[UPDATE PATTERN] removed min length req " )
+			if self.max_len != -1 and len(string) > self.max_len:
+				self.max_len = -1
+				logger.info("[UPDATE PATTERN] removed max length req " )
+			if self.prefix != None and (not string.startswith(self.prefix)):
+				self.prefix = None
+				logger.info("[UPDATE PATTERN] removed prefix req " )
+			if self.alphanumeric and (not stringIsNumeric(string)):
+				self.alphanumeric = None
+				logger.info("[UPDATE PATTERN] removed alphanumeric " )
+			if self.special_char_set != None and \
+				(not (getSpecialCharacters(string) <= self.special_char_set)):
+				s = getSpecialCharacters(string)
+				self.special_char_set = self.special_char_set.union(s)
+				logger.info("[UPDATE PATTERN] extended special_char_set " )
+			if self.domain_set != None and \
+				(not (getDomainsFromString(string) <= self.domain_set)):
+				s = getDomainsFromString(string)
+				self.domain_set.union(s)
+				logger.info("[UPDATE PATTERN] extended domain set " )
+		except Exception as e:
+			logger.error('error in Pattern.update: %s %s ' %(string, str(e)))
+		return
 
 	def loads(self, obj):
 		try:
@@ -313,7 +449,7 @@ def generateNodePattern(sample_list):
 		if stringIsNumeric(item):
 			numeric_count += 1
 	if numeric_count == len(sample_list):
-		return NodePattern(StringType.NUMBER, '')
+		return NodePattern(StringType.NUMBER, sample_list)
 
 	# Test QUOTED_NUMBER
 	numeric_count = 0
@@ -323,7 +459,7 @@ def generateNodePattern(sample_list):
 			(item[0] == '"' or item[0] == "'"):
 			numeric_count += 1
 	if numeric_count == len(sample_list):
-		return NodePattern(StringType.QUOTED_NUMBER, '')
+		return NodePattern(StringType.QUOTED_NUMBER, sample_list)
 
 	# Test CONST
 	sample_dict = {}

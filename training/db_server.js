@@ -449,6 +449,42 @@ app.post('/api/web-contents/scripts-fetch', function (req, res){
   } 
 });
 
+/* Remove Trees */
+app.post('/api/web-contents/trees-remove', function (req, res) {
+	if ( !req.body.domain || !req.body.key ) {
+		console.log(req.body.domain+" "+req.body.key);
+		return res.json({success : false});
+	}
+  try{
+	  var collection = db.get('trees');
+	  collection.remove( 
+	  	{ 	key : req.body.key,
+	  		domain: req.body.domain },
+	  function (err, doc) {
+	    if (err) {
+	        console.log("[FAIL] failed to remove tree into DB: "
+	        	+err+" "+req.body.key);
+	        res.json({
+  					success : false,
+  					message : err});
+	    }
+	    else {
+	        console.log("[SUCC] removed tree from DB: "+
+	        	req.body.domain+" "+req.body.key);
+	        res.json({
+  					success : true,
+  					domain : req.body.domain,
+  					key : req.body.key});
+	    }});
+	}
+	catch (e) {
+		console.log("error: "+e);
+		res.json({
+  			success : false,
+  			message : e});
+	}
+});
+
 //standardizeURL("http%3A%2F%2Fwww.cnn.com");
 //standardizeURL("http://www.cnn.com/");
 //standardizeURL("http://www.cnn.com/abcd/eed/ffs.html?dsd=22&dsds=233&dsdsd");

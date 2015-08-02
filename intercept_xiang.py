@@ -10,13 +10,21 @@ from csp_applier import html, template
 from dom_analyzer import DOMAnalyzer
 
 def start(context, argv):
-    #if len(argv) != 3:
-    #    raise ValueError('Usage: -s "intercept.py [http_path] [file_path]"')
+    if len(argv) != 2:
+        raise ValueError('Usage: -s "intercept.py enable_update(true|false)"')
 
     #context.http_path, context.file_path = argv[1], argv[2]
+    if argv[1].lower() == 'true':
+        context.enable_update = True
+    elif argv[1].lower() == 'false':
+        context.enable_update = False
+    else:
+        raise ValueError('Usage: -s "intercept.py enable_update(true|false)"')
+
     context.f = open('./logs/log','w',0)
     context.trees = {}
 
+#determin iframe, ignore iframe
 def response(context, flow):
     try:
         url = flow.request.url
@@ -39,7 +47,7 @@ def response(context, flow):
                     soup = BeautifulSoup( flow.response.content, 'lxml')
                 analyzer = DOMAnalyzer(soup, \
                     'https://localhost:4433/allowed-resources/', \
-                    './js_repository/', context.trees, flow.request.url)
+                    './js_repository/', context.trees, flow.request.url, context.enable_update)
                 analyzer.process()
                 client_lib_node = soup.new_tag("script", src="https://localhost:4433/libs/client_lib.js")
                 analyzer.soup.head.insert(1, client_lib_node)

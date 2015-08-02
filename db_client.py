@@ -142,6 +142,28 @@ def storeTree(url, key, tree):
         print >> sys.stderr, "Exception in storeTree: "+str(e)
         return False
 
+def removeTree(domain, key):
+    try:
+        host = "http://localhost:4040/api/web-contents/trees-remove"
+        req = urllib2.Request(host)
+        req.add_header('Content-Type', 'application/json')
+        data = { 'key' : key,
+            'domain' : domain }
+
+        response = urllib2.urlopen(req, json.dumps(data))
+        rs = json.loads(response.read())
+        
+        if rs['success']:
+            print "successfully remove tree %s for domain %s " % (key, domain)
+            return True
+        else:
+            print "failed to remove tree %s for domain %s " % (key, domain)
+            return False
+
+    except Exception as e:
+        print >> sys.stderr, "Exception in storeTree: "+str(e)
+        return False
+
 def fetchScripts(url):
     try:
         host = "http://localhost:4040/api/web-contents/scripts-fetch"

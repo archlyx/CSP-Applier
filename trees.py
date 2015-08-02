@@ -4,6 +4,7 @@ from template import getTreesForDomainFromDB
 from template import isSubTree
 from template import extractArrayValues
 from template import extractObjectValues
+from template import updateTreeForDomain
 
 from db_client import fetchScripts
 from node_pattern import global_count
@@ -14,8 +15,18 @@ from script_analyzer import analyzeJSON
 from script_analyzer import ASTOutputNode
 from base64 import b64encode
 from base64 import b64decode
-import sys, os, re, json
+import sys, os, re, json, logging
 import hashlib
+
+logger = logging.getLogger('HTMLParser')
+hdlr = logging.FileHandler('./logs/html_parser2.log')
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+hdlr.setFormatter(formatter)
+consoleHandler = logging.StreamHandler()
+consoleHandler.setFormatter(formatter)
+logger.addHandler(hdlr) 
+logger.addHandler(consoleHandler)
+logger.setLevel(logging.DEBUG)
 
 #{tree_key: [(script, url, AST_nodes)]}
 def extractScriptsAndGenerateASTNodesFromURLList(url_path):
@@ -252,8 +263,8 @@ def matchTreesFromDomainWithScript(domain, script, treedict = None):
   if treedict == None :
     treedict = getTreesForDomainFromDB(domain)
   if treedict == None or len(treedict) == 0:
-    print "failed to fetch trees for domain ", domain
-    return None, None
+    logger.error("matchTreesFromDomainWithScript: failed to fetch trees for domain: %s" %domain)
+    return None, None, treedict, None
   #print "fetched %d trees for domain" %(len(treedict))
   
   is_json = False
@@ -262,23 +273,24 @@ def matchTreesFromDomainWithScript(domain, script, treedict = None):
     rs = analyzeJSON(script)
     is_json = True
   if rs == None:
-    print "no script nor json"
-    return [], []
+    logger.error("matchTreesFromDomainWithScript no script nor json")
+    return [], [], treedict
 
   allowed_sc = []
   failed_sc = []
+  failed_tree = []
 
   if is_json:
     tree = TemplateTree(rs, None)
     #if simpleCompare(treedict, tree):
     if compare(treedict, tree):
       allowed_sc.append(rs)
-      print "JSON allowed "
+      logger.info("matchTreesFromDomainWithScript JSON allowed")
     else:
       failed_sc.append(rs)
-      print "JSON failed "
+      logger.info("matchTreesFromDomainWithScript JSON failed")
   else:
-    print "generate %d subtrees for target script" %(len(rs))
+    logger.info("generate %d subtrees for target script" %(len(rs)))
     for index in range(len(rs)):
       seq = rs[index]
       tree = TemplateTree(seq, None)
@@ -289,9 +301,10 @@ def matchTreesFromDomainWithScript(domain, script, treedict = None):
         allowed_sc.append(sc[index])
       else:
         failed_sc.append(sc[index])
+        failed_tree.append(tree)
 
-    print "allowed %d blocks, failed %d blocks" %(len(allowed_sc), len(failed_sc))
-  return allowed_sc, failed_sc, treedict
+    logger.info("matchTreesFromDomainWithScript allowed %d blocks, failed %d blocks" %(len(allowed_sc), len(failed_sc)))
+  return allowed_sc, failed_sc, treedict, failed_tree
 
 
 

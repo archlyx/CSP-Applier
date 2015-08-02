@@ -8,6 +8,7 @@ from bs4 import UnicodeDammit
 from libmproxy.protocol.http import decoded
 from csp_applier import html, template
 from dom_analyzer import DOMAnalyzer
+from db_client import writeTemplate
 
 def start(context, argv):
     if len(argv) != 2:
@@ -49,6 +50,13 @@ def response(context, flow):
                     'https://localhost:4433/allowed-resources/', \
                     './js_repository/', context.trees, flow.request.url, context.enable_update)
                 analyzer.process()
+                context.f.write('write template: \n')
+                template_file_name = writeTemplate(context.trees)
+                context.f.write('write template: '+str(template_file_name)+'\n')
+                if template_file_name != None:
+                    template_src = "https://localhost:4433/allowed-resources/"+template_file_name
+                    template_node = soup.new_tag("script", src=template_src)
+                    analyzer.soup.head.insert(1, template_node)
                 client_lib_node = soup.new_tag("script", src="https://localhost:4433/libs/client_lib.js")
                 analyzer.soup.head.insert(1, client_lib_node)
                 #try:

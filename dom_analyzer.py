@@ -5,7 +5,7 @@ from bs4 import NavigableString
 from urlparse import urlparse
 from uuid import uuid4
 from trees import matchTreesFromDomainWithScript
-import logging, sys, re, tldextract, json, urllib, hashlib, os, time
+import logging, sys, re, tldextract, json, urllib, hashlib, os, time,traceback
 
 logger = logging.getLogger('HTMLParser')
 hdlr = logging.FileHandler('./logs/html_parser2.log')
@@ -155,6 +155,7 @@ class DOMAnalyzer:
 
 		except Exception as e:
 			logger.error("Error: %s" % ( str(e)+" "+root.name))
+			traceback.print_exc(file=open('./logs/error','w'))
 
 		for child in root.contents:
 			self._traverse(child, root, level+1)
@@ -213,7 +214,7 @@ class DOMAnalyzer:
 	def _check_inline_script(self, content):
 		t1 = time.time()
 		domain = self._get_effective_domain(self.url)
-		if domain in self.trees:
+		if domain in self.trees and not self.enable_update:
 			allowed, failed, tree, failed_trees = matchTreesFromDomainWithScript(domain, content, self.trees[domain])
 			if allowed == None or failed == None:
 				return content
@@ -225,16 +226,25 @@ class DOMAnalyzer:
 				return content
 			logger.info("2 allowed: %d, failed: %d" %(len(allowed), len(failed)))
 		t2 = time.time()
-		logger.debug("_check_inline_script time: %f" %(t2 - t1))
+		logger.debug("_check_inline_script time: %f %s %d" \
+			%((t2 - t1), str(self.enable_update), len(failed_trees) ) )
 		
 		if self.enable_update:
 			for tree in failed_trees:
+				logger.debug("prepare update tree: "+tree.dumps())
 				if not updateTreeForDomain(self.url, domain, tree):
 					logger.error("failed to update tree!!!")
 				else:
 					logger.info("succeeded to update tree!!!")
-		return content
-		#return '\r\n'.join(allowed)
+		
+		#NOTE: if too bad, enable this
+		#return content
+
+		#There has some bugs in splitting the codes....
+		if len(failed_trees) == 0:
+			return content
+		else:
+			return '\r\n'.join(allowed)
 
 	def _write_external_script(self, file_name, contents):
 		try:

@@ -49,6 +49,8 @@ class TemplateTree():
     self.array_types_str = {}
     self.array_types = {}
 
+    self.wildcard_tree = False
+
     if nodes == None:
       #print >> sys.stderr, "This is a null TemplateTree"
       return
@@ -62,8 +64,12 @@ class TemplateTree():
     elif nodes[0].__class__.__name__ == "ASTOutputNode":
       self.type = "js"
     else:
-      print >> sys.stderr, "TemplateTree nodes format error: %s" \
-            %(nodes[0].__class__)
+      self.type = "js"
+      try:
+        logger.error("TemplateTree nodes format error: %s" \
+            %(nodes[0].__class__))
+      except Exception as e:
+        logger.error("TemplateTree nodes format error")
       return
 
     if key == None:
@@ -82,14 +88,14 @@ class TemplateTree():
       else:
         debug_msg = "TemplateTree nodes format error: %s %d %d" \
           %(self.nodes[0].__class__, id(type(self.nodes[0])), id(ASTOutputNode))
-        displayErrorMsg('TemplateTree.calc_key', debug_msg)
+        logger.error('TemplateTree.calc_key '+debug_msg)
         self.key = None
       key = m.hexdigest()
+      self.key = key
     else:
-      displayErrorMsg('TemplateTree.calc_key', "Nodes are None")
+      logger.error('TemplateTree.calc_key', "Nodes are None")
       self.key = None
-    self.key = key
-
+    
   def debug(self):
     if self.type == "json":
       val = ','.join(sorted(nodes.keys()))
@@ -109,12 +115,25 @@ class TemplateTree():
     return val
 
   def match(self, target_tree):
+    if self.wildcard_tree:
+      logger.error("Match because of WILDCARD_TREE, update method has bugs")
+      return True
+
     if not isinstance(target_tree, TemplateTree):
-      displayErrorMsg('TemplateTree.match,'\
+      logger.error('TemplateTree.match,'\
         "matching tree, target tree should be TemplateTree" ) 
       return False
 
+
+    if not hasattr(target_tree,'key') :
+      logger.debug("TODO TEMPLAE:MATCH target tree key is NULL "+str(self.dumps()) )
+      return True
+    if not hasattr(self, 'key'):
+      logger.debug("TODO TEMPLAE:MATCH self key is NULL "+str(self.dumps()) )
+      return True
+
     if self.key != target_tree.key:
+      logger.error('TemplateTree.match fail key different, %s %s' %(self.key,target_tree.key))
       return False
 
     if self.type == 'json' and target_tree.type == 'json':
@@ -185,14 +204,19 @@ class TemplateTree():
       obj['string_types_str'] = self.string_types_str
       obj['object_types_str'] = self.object_types_str
       obj['array_types_str'] = self.array_types_str
+      obj['wildcard_tree'] = self.wildcard_tree
       return json.dumps(obj)
     except Exception as e:
-      displayErrorMsg("TemplateTree.dumps", str(e))
+      logger.error("TemplateTree.dumps "+ str(e))
       return None
 
   def loads(self, obj_str):
     try:
       obj = json.loads(obj_str)
+      if 'wildcard_tree' in obj:
+        self.wildcard_tree = obj['wildcard_tree']
+      else:
+        self.wildcard_tree = False
       self.type = obj['type']
       if self.type == 'json':
         self.nodes = obj['tree']
@@ -230,7 +254,7 @@ class TemplateTree():
 
       return True
     except Exception as e:
-      displayErrorMsg("TemplateTree.loads", str(e))
+      logger.error("error in TemplateTree.loads "+str(e))
       return False
     
 def generateTemplateBasedOnURLsFromFile(path, dst_path):
@@ -445,6 +469,7 @@ def getTreesForDomainFromDB(domain):
 
 
 def updateTreeForDomain(url, domain, new_tree):
+  new_tree.calc_key()
   key = new_tree.key
   old_tree = None
   tree_dict = getTreesForDomainFromDB(domain)
@@ -458,6 +483,7 @@ def updateTreeForDomain(url, domain, new_tree):
         val = nodes[i].value
         if old_tree:
           old_tree.string_types[str(i)].update(val)
+          old_tree.string_types_str[str(i)] = old_tree.string_types[str(i)].dumps()
           logger.info('updateTreeForDomain update old_tree string node %s' %val)
         else:
           node_pattern = generateNodePattern(val)
@@ -475,12 +501,15 @@ def updateTreeForDomain(url, domain, new_tree):
             logger.info('updateTreeForDomain update old_tree object node %s' %str(type_dict) )
             if not k in old_tree.object_types[str(i)]:
               old_tree.object_types[str(i)][k] = node_pattern
+              old_tree.object_types_str[str(i)][k] = node_pattern.dumps()
             else:
               if isinstance(rs[k], list):
                 for item in rs[k]:
                   old_tree.object_types[str(i)][k].update(item)
+                  old_tree.object_types_str[str(i)][k] = old_tree.object_types[str(i)][k].dumps()
               else:
                 old_tree.object_types[str(i)][k].update(rs[k])
+                old_tree.object_types_str[str(i)][k] = old_tree.object_types[str(i)][k].dumps()
         logger.info('updateTreeForDomain add new_tree object node %s' %str(type_dict) )
         new_tree.object_types_str[str(i)] = type_dict
       if nodes[i].tag == "Array":
@@ -498,12 +527,15 @@ def updateTreeForDomain(url, domain, new_tree):
             logger.info('updateTreeForDomain update old_tree array node %s' %str(type_dict) )
             if not k in old_tree.array_types[str(i)]:
               old_tree.array_types[str(i)][k] = node_pattern
+              old_tree.array_types_str[str(i)][k] = node_pattern.dumps()
             else:
               if isinstance(rs[k], list):
                 for item in rs[k]:
                   old_tree.array_types[str(i)][k].update(item)
+                  old_tree.array_types_str[str(i)][k] = old_tree.array_types[str(i)][k].dumps()
               else:
                 old_tree.array_types[str(i)][k].update(rs[k])
+                old_tree.array_types_str[str(i)][k] = old_tree.array_types[str(i)][k].dumps()
         logger.info('updateTreeForDomain add new_tree array node %s' %str(type_dict) )
         new_tree.array_types_str[str(i)] = type_dict
   except Exception as e:
@@ -512,6 +544,8 @@ def updateTreeForDomain(url, domain, new_tree):
 
   if old_tree:
     removeTree(domain, key)
+    logger.error('[updateTreeForDomain] has bugs so we set wildcard_tree temporarily...')
+    old_tree.wildcard_tree = True
     storeTree(url, key, old_tree.dumps())
     logger.info('[updateTreeForDomain] done updating old tree!')
   else:

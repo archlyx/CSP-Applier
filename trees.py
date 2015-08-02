@@ -300,6 +300,7 @@ def matchTreesFromDomainWithScript(domain, script, treedict = None):
       if compare(treedict, tree):
         allowed_sc.append(sc[index])
       else:
+        logger.info("COMPARED FAILED TREE TREE: %s" % key)
         failed_sc.append(sc[index])
         failed_tree.append(tree)
 

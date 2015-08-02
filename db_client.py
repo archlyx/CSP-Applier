@@ -20,6 +20,29 @@ logger.addHandler(hdlr)
 logger.addHandler(consoleHandler)
 logger.setLevel(logging.DEBUG)
 
+def writeTemplate(trees):
+    try:
+        host = "http://localhost:8880/templates"
+        req = urllib2.Request(host)
+        req.add_header('Content-Type', 'application/json')
+        templates = json.dumps(trees)
+        data = { 'templates' : templates }
+
+        response = urllib2.urlopen(req, json.dumps(data))
+        rs = json.loads(response.read())
+        
+        if rs['success']:
+            logger.info("successfully write template at %s " % (rs['file_name']))
+            return rs['file_name']
+        else:
+            logger.error("failed to write template %s " % (rs['message']))
+            return None
+
+    except Exception as e:
+        logger.error("failed to write template %s " % (str(e)))
+        return None
+
+
 def fetchURLContents(url):
     try:
         host = "http://localhost:4040/api/web-contents/contents-fetch"

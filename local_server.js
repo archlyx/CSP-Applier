@@ -48,50 +48,35 @@ app.post('/js-factory', cors(corsOptions), function(req, res, next){
   }
   catch (e) {
     console.log('error in js-factory: '+e);
+    res.json({ success: false,
+        message: e}); 
   }
-  
-  /*try{
-    console.log("file_name: "+req.body.file_name);
-    console.log("script: "+req.body.script);
-    full_path = path.join(__dirname, config.js_repository, req.body.file_name);
-    console.log("full_path: "+full_path);
-    var decoded_script = base64.decode(req.body.script);
-    console.log("decoded_script: "+decoded_script);
+});
 
-    fs.writeFileSync(full_path, decoded_script);
+app.options('/templates', cors(corsOptions)); // enable pre-flight request for DELETE request 
+app.post('/templates', cors(corsOptions), function(req, res, next){
+  var file_name, script, full_path, script,tmp_obj, obj_str;
+  try{
+    //console.log("file_name: "+req.body.file_name);
+    //console.log("script: "+req.body.script);
+    file_name = 'templates_'+Date.now()+'.js';
+    full_path = path.join(__dirname, config.js_repository, file_name);
+    tmp_obj = JSON.parse(decodeURI(req.body.templates));
+    obj_str = escape(JSON.stringify(tmp_obj));
+    
+    script = "var csp_templates_str = unescape('"+obj_str+"');\r\n" +
+      "var csp_templates = JSON.parse(csp_templates_str);";
+    console.log(script);
+    fs.writeFileSync(full_path, script);
+    console.log('done saving tempates '+file_name);
     res.json({ success: true,
-      message: 'saved '+ req.body.file_name}); 
+        file_name: file_name}); 
   }
-  catch(e){
-    console.log('error in js-factory: '+e);
-  }*/
-  
-  /*
-  var form = new formidable.IncomingForm();
-  form.parse(req, function(err, fields, files) {
-    //logger.infoMsg("PARSE:"+files.image.name+" "+files.image.path);
-    try{
-      console.log("file_name: "+fields.file_name);
-      console.log("script: "+fields.script.length);
-      full_path = path.join(__dirname, config.js_repository, fields.file_name);
-      console.log("full_path: "+full_path);
-      //var decoded_script = new Buffer(fields.script, 'base64');
-      var x= decodeURI(fields.script);
-      var decoded_script = base64.decode(x);
-      console.log("decoded_script: "+x);
-
-      fs.writeFileSync(full_path, decoded_script);
-
-      res.json({ success: true,
-        message: 'saved '+ fields.file_name}); 
-    }
-    catch (e) {
-      console.log("failed parsing post request: "+e);
-      res.json({ success: false,
-        message: e }); 
-    }
-  });
-  */
+  catch (e) {
+    console.log('error in templates: '+e);
+    res.json({ success: false,
+        message: e}); 
+  }
 });
 
 http.createServer(app).listen(config.http_port);

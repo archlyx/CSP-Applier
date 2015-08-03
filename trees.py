@@ -262,6 +262,10 @@ def matchTreesFromDomainWithScript(domain, script, treedict = None):
   if treedict == None :
     treedict = getTreesForDomainFromDB(domain)
   if treedict == None or len(treedict) == 0:
+    rs, sc = analyzeJSCodesFinerBlock(script)
+    if rs == None:
+      rs = analyzeJSON(script)
+      
     logger.error("matchTreesFromDomainWithScript: failed to fetch trees for domain: %s" %domain)
     return None, None, treedict, None
   #print "fetched %d trees for domain" %(len(treedict))

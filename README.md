@@ -18,10 +18,10 @@ nodemon training/db_server.js
 Screen -S proxy
 mitmproxy -s 'intercept_xiang.py false domain(cnn.com)'
 
-5. Deploy Chrome browser:
+5. Deploy Chrome browser: 
 1). install proxy extension (SwitchSharp)
 2). add 8080 as proxy port
-3). add two certs:
+3). add two certs: (all in ./yu/)
     a. ./certs/cert.pem
     b. ~/.mitmproxy/mitmproxy-ca-cert.pem and ~/.mitmproxy/mitmproxy-ca.pem
 

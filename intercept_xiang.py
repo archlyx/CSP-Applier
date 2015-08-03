@@ -9,6 +9,7 @@ from libmproxy.protocol.http import decoded
 from csp_applier import html, template
 from dom_analyzer import DOMAnalyzer
 from db_client import writeTemplate
+from template import getTreesForDomainFromDB
 
 def start(context, argv):
     if len(argv) < 2:
@@ -16,7 +17,9 @@ def start(context, argv):
 
     if len(argv) == 3:
         context.trees = {}
-        context.trees[argv[2].lower()]
+        treedict = getTreesForDomainFromDB(argv[2].lower())
+        context.trees[argv[2].lower()] = treedict
+
     else:
         context.trees = {}
     #context.http_path, context.file_path = argv[1], argv[2]

@@ -9,9 +9,10 @@ import logging
 import math
 import traceback
 import tldextract
+import template
 
 logger = logging.getLogger('DOMCluster')
-hdlr = logging.FileHandler('./cluster.log')
+hdlr = logging.FileHandler('./logs/db_client.log')
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 consoleHandler = logging.StreamHandler()
@@ -25,8 +26,16 @@ def writeTemplate(trees):
         host = "http://localhost:8880/templates"
         req = urllib2.Request(host)
         req.add_header('Content-Type', 'application/json')
-        templates = json.dumps(trees)
-        data = { 'templates' : templates }
+        templates = {}
+        for domain in trees:
+            templates[domain] = {}
+            if trees[domain] == None:
+                templates[domain] = None
+            elif isinstance(trees[domain], dict):
+                for key in trees[domain]:
+                    templates[domain][key] = trees[domain][key].dumps()
+
+        data = { 'templates' : json.dumps(templates) }
 
         response = urllib2.urlopen(req, json.dumps(data))
         rs = json.loads(response.read())

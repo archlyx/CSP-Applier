@@ -1,5 +1,4 @@
 #!/bin/bash
-
 mkdir logs
 mkdir js_repository
 mkdir certs

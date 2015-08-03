@@ -5,7 +5,6 @@ from template import isSubTree
 from template import extractArrayValues
 from template import extractObjectValues
 from template import updateTreeForDomain
-
 from db_client import fetchScripts
 from node_pattern import global_count
 

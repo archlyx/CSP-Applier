@@ -44,7 +44,7 @@ consoleHandler = logging.StreamHandler()
 consoleHandler.setFormatter(formatter)
 logger.addHandler(hdlr) 
 logger.addHandler(consoleHandler)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.ERROR)
 
 class NodePattern():
 	def __init__(self, tp=StringType.INSUFFICIENT, val=None):

@@ -83,4 +83,4 @@ http.createServer(app).listen(config.http_port);
 https.createServer(options, app).listen(config.https_port);
 console.log('Listening on port http:' + 
 	config.http_port+' https:'+config.https_port+
-	' dirname'+__dirname);
+	' dirname: '+__dirname);

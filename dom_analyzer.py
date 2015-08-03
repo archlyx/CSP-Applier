@@ -15,7 +15,7 @@ consoleHandler = logging.StreamHandler()
 consoleHandler.setFormatter(formatter)
 logger.addHandler(hdlr) 
 logger.addHandler(consoleHandler)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.ERROR)
 
 class DOMAnalyzer:
 	
@@ -238,13 +238,13 @@ class DOMAnalyzer:
 					logger.info("succeeded to update tree!!!")
 		
 		#NOTE: if too bad, enable this
-		#return content
+		return content
 
 		#There has some bugs in splitting the codes....
-		if len(failed_trees) == 0:
-			return content
-		else:
-			return '\r\n'.join(allowed)
+		#if len(failed_trees) == 0:
+		#	return content
+		#else:
+		#	return '\r\n'.join(allowed)
 
 	def _write_external_script(self, file_name, contents):
 		try:

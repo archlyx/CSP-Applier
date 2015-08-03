@@ -11,9 +11,14 @@ from dom_analyzer import DOMAnalyzer
 from db_client import writeTemplate
 
 def start(context, argv):
-    if len(argv) != 2:
-        raise ValueError('Usage: -s "intercept.py enable_update(true|false)"')
+    if len(argv) < 2:
+        raise ValueError('Usage: -s "intercept.py enable_update(true|false) (pre_fetched_domain)"')
 
+    if len(argv) == 3:
+        context.trees = {}
+        context.trees[argv[2].lower()]
+    else:
+        context.trees = {}
     #context.http_path, context.file_path = argv[1], argv[2]
     if argv[1].lower() == 'true':
         context.enable_update = True
@@ -23,7 +28,7 @@ def start(context, argv):
         raise ValueError('Usage: -s "intercept.py enable_update(true|false)"')
 
     context.f = open('./logs/log','w',0)
-    context.trees = {}
+    
 
 #determin iframe, ignore iframe
 def response(context, flow):

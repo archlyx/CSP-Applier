@@ -1,6 +1,6 @@
 import sys, traceback
 sys.path.append(".")
-sys.path.append("/usr/local/lib/python2.7/site-packages")
+#sys.path.append("/usr/local/lib/python2.7/site-packages")
 
 from hashlib import sha1
 from bs4 import BeautifulSoup
@@ -10,6 +10,7 @@ from csp_applier import html, template
 from dom_analyzer import DOMAnalyzer
 from db_client import writeTemplate
 from template import getTreesForDomainFromDB
+
 
 def start(context, argv):
     if len(argv) < 2:

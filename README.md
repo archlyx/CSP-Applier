@@ -4,18 +4,23 @@
 
 ## Usage
 1. Initiate environment:
+Install mongodb, nodejs, npm, mitmproxy, screen
 ./prepare.sh
 
 2. Create a screen session and start local javascript server (port 8880, 4433)
 screen -S local_server
 nodemon local_server.js
 
-3. Create a screen session and start template database server (port 4040, 27017)
-screen -S template
+3. Create a screen session and start mongodb
+screen -S mongodb
+mongod
+
+4. Create a screen session and start template database server (port 4040, 27017)
+screen -S db_server 
 nodemon training/db_server.js
 
 4. Create a screen session and run Proxy (port 8080)
-Screen -S proxy
+screen -S proxy
 mitmproxy -s 'intercept_xiang.py false domain(cnn.com)'
 
 5. Deploy Chrome browser: 

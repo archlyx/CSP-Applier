@@ -163,7 +163,7 @@ def matchTreesWithScriptsFromURLList(tree_path, url_path):
 def matchTreesFromDomainWithScriptsFromURLList(domain, url_list_path):
   treedict = getTreesForDomainFromDB(domain)
   if treedict == None or len(treedict) == 0:
-    print "failed to fetch trees for domain ", domain
+    #print "failed to fetch trees for domain ", domain
     return
   print "fetched %d trees for domain" %(len(treedict))
   scriptdict, count_dict, json_count = extractScriptsAndGenerateASTNodesFromURLListFinerBlock(url_list_path)

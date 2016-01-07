@@ -14,7 +14,7 @@ hdlr.setFormatter(formatter)
 consoleHandler = logging.StreamHandler()
 consoleHandler.setFormatter(formatter)
 logger.addHandler(hdlr) 
-logger.addHandler(consoleHandler)
+#logger.addHandler(consoleHandler)
 logger.setLevel(logging.ERROR)
 
 class DOMAnalyzer:

@@ -271,6 +271,7 @@ def fetchDistance(url1, url2):
         print str(e)
         return None
 
+cacheTrees = {}
 def fetchTrees(domain):
     try:
         host = "http://localhost:4040/api/web-contents/trees-fetch"
@@ -278,6 +279,8 @@ def fetchTrees(domain):
         req.add_header('Content-Type', 'application/json')
         domain = domain.strip().lower()
         data = { 'domain' : domain }
+        if domain in cacheTrees:
+            return cacheTrees[domain]
 
         response = urllib2.urlopen(req, json.dumps(data))
         rs = json.loads(response.read())
@@ -287,14 +290,16 @@ def fetchTrees(domain):
             db_result = json.loads(rs['result'])
             if db_result == None or len(db_result) == 0:
                 print "no trees for domain %s" %(domain)
+                cacheTrees[domain] = None
                 return None
             print "get %d trees for domain %s" % (len(db_result), domain)
             for item in db_result:
                 final_rs[item['key'] ] = item['tree']
-
+            cacheTrees[domain] = final_rs
             return final_rs
         else:
             print "failed to fetch tree of domain: "+domain
+            cacheTrees[domain] = None
             return None
 
     except Exception as e:

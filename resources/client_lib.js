@@ -64,18 +64,19 @@ var csp_client_lib = (function() {
     parser.href = url;
     return parser.hostname;
   };
-
-  var csp_rewrite_inline_script = function (old_script_node) {
+  
+  var csp_rewrite_inline_script = function (old_script_node, starting_time) {
     if (old_script_node.innerHTML === ""){
       return ;
     }
     var old_node  = old_script_node;
     var xmlhttp = new XMLHttpRequest();   // new HttpRequest instance 
     //console.log("debug inline: "+old_script_node.innerHTML);
-    
+    var times = {};
     var encoded_script = csp_base64encode_script(old_script_node.innerHTML);
     //console.log("debug encoded inline: "+encoded_script.length)
     var file_name =  'dynamic_'+csp_parse_url(page_url) + '_' +Date.now()+'.js';
+    times[file_name] = starting_time;
     //var params = "file_name="+file_name+"&script=" + encoded_script;
     var obj = {file_name:file_name, script:encodeURI(old_script_node.innerHTML)};
     var params = JSON.stringify(obj);
@@ -90,6 +91,9 @@ var csp_client_lib = (function() {
             console.log('successfully creating external JS\n');
             new_node = csp_create_script_node(csp_js_repository_url+file_name);
             csp_replace_node(new_node, old_node);
+            var end_time = Date.now();
+            var diff_time = end_time - times[file_name];
+            console.log('DYNAMICJS_TIME: '+diff_time);
           }
           else {
             console.log('failed to create external js: '+obj.message);
@@ -120,8 +124,17 @@ var csp_client_lib = (function() {
             if (node.innerHTML === "") { continue; }
             script = csp_match_contents(node.innerHTML);
             if (script === "" ) { continue; }
+            try{
+              var t1 = Date.now();
+              esprima.parse(script);
+              var t2 = Date.now() - t1;
+              console.log("inline_len:"+script.length+" time:"+t2);
+            }
+            catch(e){
+              console.log('error in parsing js:'+e);
+            }
             //console.log("detect one added script node");
-            csp_rewrite_inline_script(node);
+            csp_rewrite_inline_script(node,Date.now());
 
           }
         }

@@ -14,8 +14,8 @@ var csp_client_lib = (function() {
 
   var csp_base64encode_script = function (script) {
     try{
-      console.log("DEBUG: original_script:"+script);
-      console.log("DEBUG:  encoded_script:"+encodeURI(script));
+      //console.log("DEBUG: original_script:"+script);
+      //console.log("DEBUG:  encoded_script:"+encodeURI(script));
       return encodeURI(script);
       //return encodeURI(btoa(script));
     }
@@ -52,7 +52,7 @@ var csp_client_lib = (function() {
           p_node.replaceChild(new_node, old_node);
         }
       }
-      console.log('done replacing node: '+new_node['src']);
+      //console.log('done replacing node: '+new_node['src']);
     }
     catch (e) {
       console.log('erorr in csp_replace_node '+ e);
@@ -123,12 +123,16 @@ var csp_client_lib = (function() {
       for (var i = 0; i < mutation.addedNodes.length; i++){
         try{
           node = mutation.addedNodes[i];
+          if(node.innerHTML.indexOf('Share to Facebook. Opens in a new window') !== -1 ){
+            console.log("FIND THIS NODE:"+node.innerHTML);
+          }
+          
           node_name = node.nodeName.toUpperCase();
           if (node_name === "SCRIPT"){
             var script = node.innerHTML.trim();
             if (script.length === 0) { continue; }
             script = csp_match_contents(script);
-            console.log("captured inline script:"+script);
+            //console.log("captured inline script:"+script);
             if (script === "" ) { continue; }
             try{
               var t1 = Date.now();
@@ -141,6 +145,9 @@ var csp_client_lib = (function() {
               console.log('CSP Error in parsing js:'+e);
             }
             //console.log("detect one added script node");
+          }
+          else if(node_name === "BUTTON"){
+            //console.log("NewButton: "+node.innerHTML);
           }
         }
         catch (e) {
@@ -176,5 +183,48 @@ var csp_client_lib = (function() {
 
 }) ();
 
+//Rewrite Eval
+var TYPES = {
+    'undefined'        : 'undefined',
+    'number'           : 'number',
+    'boolean'          : 'boolean',
+    'string'           : 'string',
+    '[object Function]': 'function',
+    '[object RegExp]'  : 'regexp',
+    '[object Array]'   : 'array',
+    '[object Date]'    : 'date',
+    '[object Error]'   : 'error'
+},
+TOSTRING = Object.prototype.toString;
+
+function type(o) {
+    return TYPES[typeof o] || TYPES[TOSTRING.call(o)] || (o ? 'object' : 'null');
+};
+
+var old_eval = window.eval;
+window.eval = function (arg){
+  //console.log("prepare eval: "+type(arg)+" content:"+arg); 
+  try{
+    return JSON.parse(arg);
+  }
+  catch(e){
+    try{
+      return JSON.parse(arg.substr(1,arg.length-2));
+    }
+    catch(e){
+      console.log("CSP Eval exception:"+e);
+    }
+  }
+}
+Function = function(arg){
+  console.log("Function: "+arg);
+  if (arguments.length===0)
+    return function(){};
+
+  return  function(){};
+}
+
+
 csp_client_lib.config(document.URL);
 csp_client_lib.run_observer();
+

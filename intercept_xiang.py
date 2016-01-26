@@ -59,7 +59,7 @@ def response(context, flow):
             #if flow.request.headers['Referer']:
             #    return
             flow.response.headers['Content-Security-Policy'] = \
-                ["default-src * data: 'self' 'unsafe-eval' ; style-src data: 'self' 'unsafe-eval' 'unsafe-inline' *"]
+                ["default-src * data: 'self' 'unsafe-inline'; style-src data: 'self' 'unsafe-eval' 'unsafe-inline' *"]
             flow.response.headers['Cache-Control'] = ["no-cache"]
             
             context.f.write('  start rewriting response %s %s\n' % (flow.request.url, \
@@ -82,7 +82,7 @@ def response(context, flow):
            
             try:
                 flow.response.content = analyzer.soup.prettify().encode('utf-8')
-                #context.f.write('newcontent:%s\n' %flow.response.content)
+                context.f.write('newcontent:%s\n' %flow.response.content)
             except Exception as e:
                 context.f.write("  encoding exception: %s\n" %(str(e)))
             #context.f.write("  new HTML:\n %s  \n" %(flow.response.content) )

@@ -69,9 +69,9 @@ class DOMAnalyzer:
 
 		# write inlines
 		for key in self.inlines:
-			#logger.debug('sc contents: %s' %self.inlines[key] )
+			#logger.error('  [DEBUG] sc contents: %s' %self.inlines[key] )
 			if not self._write_external_script(key, self.inlines[key]):
-				logger.error('  [ERROR] failed to write external script: %s' %key)
+				logger.error('  [ERROR] failed to write external script: %s' %str(self.inlines[key]) )
 			else:
 				logger.info('  [DEBUG] finish writing external script: \
 					%s size: %d' %(key, len(self.inlines[key])) )
@@ -89,7 +89,7 @@ class DOMAnalyzer:
 		if len(inline_event_listeners) > 0:
 			try:
 				full_listeners = \
-					"document.addEventListener('DOMContentLoaded', function () { console.log('CSP_APPLIER domcontentloaded'); %s } );\r\n"
+					"document.addEventListener('DOMContentLoaded', function () { %s } );\r\n"
 				full_listeners = full_listeners % ( '\r\n'.join(inline_event_listeners) )
 				file_name = 'script_%s_%s_event.js' %(uuid4().hex, self.urlhash)
 				self._write_external_script(file_name, full_listeners)
@@ -133,7 +133,7 @@ class DOMAnalyzer:
 						logger.debug('  [ERROR] None inline contents: %s' %root)
 					rs = self._check_inline_script(inline)
 					self.clear_tags.append(root)
-					if rs == False:
+					if rs == None:
 						logger.info('  [ERROR] Script failed checking: %s' % self._encode_script(inline) )
 					else:					
 						file_name = 'script_%d_%s_inline.js' %(len(self.inlines), self.urlhash)
@@ -143,7 +143,7 @@ class DOMAnalyzer:
 						logger.info('  [DEBUG] convert inline to external scripts: %s <= %s' \
 							% (file_name, self._encode_script(inline)) )
 				else:
-					logger.warning("  [ALERT] unknown script tag: "+str(tag)) 
+					logger.error("  [ALERT] unknown script tag: "+str(tag)) 
 				# for debugging
 				if external != None:
 					self.externals.append(external)
@@ -173,10 +173,10 @@ class DOMAnalyzer:
 
 			call_stat = \
 				"try { \r\n" + \
-					"console.log('eventlistener!!');\r\n" +\
+					"" +\
 					"document.getElementById('%s')" + \
 					".addEventListener('%s', function () { %s }); \r\n" + \
-				"} catch(e) {console.log('CSP_APPLIER'+str(e) );}\r\n"
+				"} catch(e) {console.log('Error CSP_APPLIER'+str(e) );}\r\n"
 			call_stat = call_stat % (tag_id, event[2:], body)
 		except Exception as e:
 			logger.error('error in _wrap_event_listener: %s ' %(str(e)))
@@ -222,7 +222,7 @@ class DOMAnalyzer:
 
 	# TODO: not implemented
 	def _check_inline_script(self, content):
-		return True
+		return content
 		'''
 		t1 = time.time()
 		domain = self._get_effective_domain(self.url)
@@ -262,6 +262,7 @@ class DOMAnalyzer:
 	def _write_external_script(self, file_name, contents):
 		try:
 			full_path = os.path.join(self.dest_dir, file_name)
+			logger.info("  _write_external_script contents :%s"%contents)
 			rs = self._encode_script(contents)
 			if rs == None:
 				logger.error('  [ERROR] _write_external_script failed: encoding contents failed')

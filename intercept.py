@@ -9,8 +9,6 @@ from csp_applier import html, template
 from dom_analyzer import DOMAnalyzer
 
 def start(context, argv):
-    if len(argv) != 3:
-        raise ValueError('Usage: -s "intercept.py [http_path] [file_path]"')
 
     #context.http_path, context.file_path = argv[1], argv[2]
     context.f = open('./logs/log','w',0)
@@ -27,20 +25,20 @@ def response(context, flow):
             #context.f.write('  type:%s\n' %tp)
             if "text/html" in tp:
                 flow.response.headers['Content-Security-Policy'] = \
-                    ["default-src 'self' 'unsafe-eval' *; style-src 'self' 'unsafe-eval' 'unsafe-inline' *"]
+                    ["default-src 'self' 'unsafe-inline' *; style-src 'self' 'unsafe-eval' 'unsafe-inline' *"]
                 flow.response.headers['Cache-Control'] = ["no-cache"]
                 #context.f.write('  rewrite response %s %s\n' % (flow.request.url, \
                 #    str(flow.response.headers) ) )
-                try:
-                    soup = BeautifulSoup( flow.response.content, "html5lib")
-                except Exception as e:
-                    soup = BeautifulSoup( flow.response.content, 'lxml')
-                analyzer = DOMAnalyzer(soup, \
-                    'https://localhost:4433/allowed-resources/', \
-                    './js_repository/', flow.request.url)
-                analyzer.process()
-                client_lib_node = soup.new_tag("script", src="https://localhost:4433/libs/client_lib.js")
-                analyzer.soup.head.insert(1, client_lib_node)
+                #try:
+                #    soup = BeautifulSoup( flow.response.content, "html5lib")
+                #except Exception as e:
+                #    soup = BeautifulSoup( flow.response.content, 'lxml')
+                #analyzer = DOMAnalyzer(soup, \
+                #    'https://localhost:4433/allowed-resources/', \
+                #    './js_repository/', flow.request.url)
+                #analyzer.process()
+                #client_lib_node = soup.new_tag("script", src="https://localhost:4433/libs/client_lib.js")
+                #analyzer.soup.head.insert(1, client_lib_node)
                 #try:
                 #    context.f.write('  OLD response %s:\n' % soup.prettify().encode('ascii', 'ignore'))
                 #except Exception as e:
@@ -48,14 +46,14 @@ def response(context, flow):
                 #context.f.write("    debug before analyzing\n")
                 #context.f.write("    debug after analyzing %d\n" %(len(html_parser)) )
 
-                context.f.write("  need write %d inlines \n" %(len(analyzer.inlines)) )
+                #context.f.write("  need write %d inlines \n" %(len(analyzer.inlines)) )
                 #new_content = UnicodeDammit(analyzer.soup.prettify())
                 #flow.response.content = new_content.unicode_markup
-                try:
-                    flow.response.content = analyzer.soup.prettify().encode('utf-8')
-                    context.f.write('newcontent:%s\n' %flow.response.content)
-                except Exception as e:
-                    context.f.write("  encoding exception: %s\n" %(str(e)))
+                #try:
+                #    flow.response.content = analyzer.soup.prettify().encode('utf-8')
+                #    context.f.write('newcontent:%s\n' %flow.response.content)
+                #except Exception as e:
+                #    context.f.write("  encoding exception: %s\n" %(str(e)))
                 #context.f.write("  new HTML:\n %s  \n" %(flow.response.content) )
             else:
                 pass

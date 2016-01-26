@@ -42,6 +42,7 @@ app.post('/js-factory', cors(corsOptions), function(req, res, next){
     //console.log("script: "+req.body.script);
     full_path = path.join(__dirname, config.js_repository, req.body.file_name);
     decoded_script = decodeURI(req.body.script);
+    console.log("decoded_script:"+decoded_script);
     fs.writeFileSync(full_path,decoded_script);
     res.json({ success: true,
         message: 'saved '+ req.body.file_name}); 

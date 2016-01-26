@@ -6,6 +6,17 @@ Steps to run the service:
 
 
 Steps to train a website:
+1. modify spider.py to give a domain name
+2. scrapy runspider spider.py > evaluation/tmp/doman.txt
+3. processGoogleURL.py evaluation/tmp/doman.txt evaluation/urls/domain.txt
+4. pick 2500 from evaluation/urls/domain.txt and store as evaluation/urls/domain_2500.txt
+5. python send_get_req.py evaluation/urls/domain_2500.txt
+
+==============
+6. python processScript.py evaluation/urls/domain_2500.txt # get script
+7. split evaluation/urls/domain_2500.txt into evaluation/urls/domain_train.txt (2000) and evaluation/urls/domain_test.txt (500)
+8. train: mkdir tmp/domain; python template.py evaluation/urls/domain_train.txt tmp/domain
+9. test:  python handler.py domain evaluation/urls/domain_test.txt 
 
 
 

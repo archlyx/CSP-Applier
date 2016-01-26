@@ -11,7 +11,7 @@ from dom_analyzer import DOMAnalyzer
 from db_client import writeTemplate
 from template import getTreesForDomainFromDB
 from time import time
-
+from urlparse import urlparse
 
 def start(context, argv):
     if len(argv) < 2:
@@ -41,6 +41,10 @@ def start(context, argv):
 def response(context, flow):
     try:
         url = flow.request.url
+        o = urlparse(url)
+        host = o.netloc.lower()
+        if host.startswith("localhost") or host.startswith("127.0.0.1"):
+            return
         context.f.write('Receive response: %s\n'%flow.request.url)
         #context.f.write('  headers: %s\n' % str(flow.response.headers) )
         if not "Content-Type" in flow.response.headers:
@@ -54,8 +58,8 @@ def response(context, flow):
         with decoded(flow.response):  # Automatically decode gzipped responses.
             #if flow.request.headers['Referer']:
             #    return
-            #flow.response.headers['Content-Security-Policy'] = \
-            #    ["default-src 'self' 'unsafe-eval' *; style-src 'self' 'unsafe-eval' 'unsafe-inline' *"]
+            flow.response.headers['Content-Security-Policy'] = \
+                ["default-src * data: 'self' 'unsafe-eval' ; style-src data: 'self' 'unsafe-eval' 'unsafe-inline' *"]
             flow.response.headers['Cache-Control'] = ["no-cache"]
             
             context.f.write('  start rewriting response %s %s\n' % (flow.request.url, \

@@ -14,6 +14,8 @@ var csp_client_lib = (function() {
 
   var csp_base64encode_script = function (script) {
     try{
+      console.log("DEBUG: original_script:"+script);
+      console.log("DEBUG:  encoded_script:"+encodeURI(script));
       return encodeURI(script);
       //return encodeURI(btoa(script));
     }
@@ -37,21 +39,23 @@ var csp_client_lib = (function() {
 
   var csp_replace_node = function (new_node, old_node) {
     try{
-      var p_node = old_node.parentElement;
-      if (p_node===null) {
-        //console.log("1 old node: "+old_node+" "+old_node.insert_before);
-        //old_node.insert_before(new_node);
+      if(old_node===null){
         document.getElementsByTagName('head')[0].appendChild(new_node);
+        //return ;
       }
-      else {
-        //console.log("2 old node: "+old_node+" "+old_node.insert_before);
-         p_node.replaceChild(new_node, old_node);
+      else{
+        var p_node = old_node.parentElement;
+        if (p_node===null) {
+          document.getElementsByTagName('head')[0].appendChild(new_node);
+        }
+        else {
+          p_node.replaceChild(new_node, old_node);
+        }
       }
-     
-      //console.log('done replacing node')
+      console.log('done replacing node: '+new_node['src']);
     }
     catch (e) {
-      console.log('erorr in csp_replace_node '+ e)
+      console.log('erorr in csp_replace_node '+ e);
     }
   };
 
@@ -78,7 +82,7 @@ var csp_client_lib = (function() {
     var file_name =  'dynamic_'+csp_parse_url(page_url) + '_' +Date.now()+'.js';
     times[file_name] = starting_time;
     //var params = "file_name="+file_name+"&script=" + encoded_script;
-    var obj = {file_name:file_name, script:encodeURI(old_script_node.innerHTML)};
+    var obj = {file_name:file_name, script:encoded_script};
     var params = JSON.stringify(obj);
     //console.log("params:"+params);
     var new_node;
@@ -88,19 +92,19 @@ var csp_client_lib = (function() {
         try{
           var obj = JSON.parse(xmlhttp.responseText);
           if (obj.success === true) {
-            console.log('successfully creating external JS\n');
+            //console.log('successfully creating external JS\n');
             new_node = csp_create_script_node(csp_js_repository_url+file_name);
             csp_replace_node(new_node, old_node);
             var end_time = Date.now();
             var diff_time = end_time - times[file_name];
-            console.log('DYNAMICJS_TIME: '+diff_time);
+            //console.log('DYNAMICJS_TIME: '+diff_time);
           }
           else {
-            console.log('failed to create external js: '+obj.message);
+            console.log('Failed to create external js: '+obj.message);
           }
         }
         catch (e) {
-          console.log('failed to create external js: '+obj.message);
+          console.log('Failed to create external js: '+obj.message);
         }
       }
     };
@@ -119,27 +123,28 @@ var csp_client_lib = (function() {
       for (var i = 0; i < mutation.addedNodes.length; i++){
         try{
           node = mutation.addedNodes[i];
-          node_name = node.nodeName;
+          node_name = node.nodeName.toUpperCase();
           if (node_name === "SCRIPT"){
-            if (node.innerHTML === "") { continue; }
-            script = csp_match_contents(node.innerHTML);
+            var script = node.innerHTML.trim();
+            if (script.length === 0) { continue; }
+            script = csp_match_contents(script);
+            console.log("captured inline script:"+script);
             if (script === "" ) { continue; }
             try{
               var t1 = Date.now();
               esprima.parse(script);
               var t2 = Date.now() - t1;
-              console.log("inline_len:"+script.length+" time:"+t2);
+              //console.log("inline_len:"+script.length+" time:"+t2);
+              csp_rewrite_inline_script(node,Date.now());
             }
             catch(e){
-              console.log('error in parsing js:'+e);
+              console.log('CSP Error in parsing js:'+e);
             }
             //console.log("detect one added script node");
-            csp_rewrite_inline_script(node,Date.now());
-
           }
         }
         catch (e) {
-          console.log("error in MutationObserver callback "+e);
+          console.log("CSP Error in MutationObserver callback "+e);
         }
        
       }

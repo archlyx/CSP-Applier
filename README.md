@@ -19,11 +19,11 @@ mongod
 screen -S db_server 
 nodemon training/db_server.js
 
-4. Create a screen session and run Proxy (port 8080)
+5. Create a screen session and run Proxy (port 8080)
 screen -S proxy
 mitmproxy -s 'intercept_xiang.py false domain(cnn.com)'
 
-5. Deploy Chrome browser: 
+6. Deploy Chrome browser: 
 1). install proxy extension (SwitchSharp)
 2). add 8080 as proxy port
 3). add two certs: (all in ./yu/)

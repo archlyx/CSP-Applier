@@ -54,26 +54,28 @@ class DOMAnalyzer:
 		self.clear_tags = []
 		self.attr_js = []
 
-		logger.info('start processing %s' %self.url)
+		logger.info('  [DEBUG] start processing %s' %self.url)
 		self._traverse(self.soup, None, 0)
+		logger.info('  [DEBUG] finish traversing %s' %self.url)
+		
 		try:
 			[tag.decompose() for tag in self.remove_tags]
 			[tag.clear() for tag in self.clear_tags]
 		except Exception as e:
-			logger.error('error in removing/clearing tag node: %s' %str(e))
+			logger.error('  [ERROR] removing/clearing tag node: %s' %str(e))
 
-		logger.info('done processing DOM, cleared %d tags and removed %d tags' \
+		logger.info('  [DEBUG] finish clearing/removing DOM, cleared %d tags and removed %d tags' \
 			%(len(self.clear_tags), len(self.remove_tags)))
 
 		# write inlines
 		for key in self.inlines:
 			#logger.debug('sc contents: %s' %self.inlines[key] )
 			if not self._write_external_script(key, self.inlines[key]):
-				logger.error('failed to write external script: %s' %key)
+				logger.error('  [ERROR] failed to write external script: %s' %key)
 			else:
-				logger.info('done writing external script: \
+				logger.info('  [DEBUG] finish writing external script: \
 					%s size: %d' %(key, len(self.inlines[key])) )
-		logger.info('Process result: %d inlines and %d externals' \
+		logger.info('  [DEBUG] processing result: %d inlines and %d externals' \
 			%(len(self.inlines), len(self.externals)))
 
 		# process event listeners
@@ -87,15 +89,16 @@ class DOMAnalyzer:
 		if len(inline_event_listeners) > 0:
 			try:
 				full_listeners = \
-					"document.addEventListener('DOMContentLoaded', function () { console.log('domcontentloaded!!'); %s } );\r\n"
+					"document.addEventListener('DOMContentLoaded', function () { console.log('CSP_APPLIER domcontentloaded'); %s } );\r\n"
 				full_listeners = full_listeners % ( '\r\n'.join(inline_event_listeners) )
 				file_name = 'script_%s_%s_event.js' %(uuid4().hex, self.urlhash)
 				self._write_external_script(file_name, full_listeners)
 				# modify html page
 				new_tag = self.soup.new_tag('script',src=self._build_local_url_path(file_name))
 				self.soup.head.insert(1, new_tag)
+				logger.info('  [DEBUG] finish processing inline event listeners: %s\n' %full_listeners)
 			except Exception as e:
-				logger.error('error in generating event listener: %s' %(str(e)))
+				logger.error('  [ERROR] error in generating event listener: %s' %(str(e)))
 
 	def _traverse(self, root, parent_node, level):
 		#print "traverse: ",str(root)
@@ -110,7 +113,7 @@ class DOMAnalyzer:
 			try:
 				rs = rs.encode('utf-8').strip()
 			except Exception as e:
-				pass
+				logger.error('_traverse error in encoding: %s' %(str(e)))
 			return rs
 
 		external = None
@@ -121,24 +124,26 @@ class DOMAnalyzer:
 			if tag == 'script':
 				if root.get('src') != None:
 					external = root.get('src').strip().lower()
-					#root['id'] = len(self.externals)
-					#self.remove_tags.append(root)
 					if not self._check_url(external):
 						self.remove_tags.append(root)
+				#inline script
 				elif isinstance(root.contents[0], NavigableString):
 					inline = self._traverse(root.contents[0], root, level+1)
 					if inline == None:
-						logger.debug('None inline contents: %s' %root)
+						logger.debug('  [ERROR] None inline contents: %s' %root)
 					rs = self._check_inline_script(inline)
 					self.clear_tags.append(root)
-					if rs == None or len(rs) == 0:
-						logger.info('Script failed checking: %s' % self._encode_script(inline) )
+					if rs == False:
+						logger.info('  [ERROR] Script failed checking: %s' % self._encode_script(inline) )
 					else:					
 						file_name = 'script_%d_%s_inline.js' %(len(self.inlines), self.urlhash)
 						root['src'] = self._build_local_url_path(file_name)
 						self.inlines[file_name] = rs
+						logger.info('  [DEBUG] script %s'%str(inline))
+						logger.info('  [DEBUG] convert inline to external scripts: %s <= %s' \
+							% (file_name, self._encode_script(inline)) )
 				else:
-					logger.warning("unknown script tag: "+str(tag)) 
+					logger.warning("  [ALERT] unknown script tag: "+str(tag)) 
 				# for debugging
 				if external != None:
 					self.externals.append(external)
@@ -151,10 +156,10 @@ class DOMAnalyzer:
 					script = root[event]
 					del root[event]
 					self.attr_js.append((tag_id, event, script))
-					logger.debug("inline event listener: %s" %str((tag_id, event, script))) 
+					logger.debug("  [DEBUG] inline event listener: %s" %str((tag_id, event, script))) 
 
 		except Exception as e:
-			logger.error("Error: %s" % ( str(e)+" "+root.name))
+			logger.error("  [SEVERE ERROR]: %s" % ( str(e)+" "+root.name))
 			traceback.print_exc(file=open('./logs/error','w'))
 
 		for child in root.contents:
@@ -171,7 +176,7 @@ class DOMAnalyzer:
 					"console.log('eventlistener!!');\r\n" +\
 					"document.getElementById('%s')" + \
 					".addEventListener('%s', function () { %s }); \r\n" + \
-				"} catch(e) {console.log(e);}\r\n"
+				"} catch(e) {console.log('CSP_APPLIER'+str(e) );}\r\n"
 			call_stat = call_stat % (tag_id, event[2:], body)
 		except Exception as e:
 			logger.error('error in _wrap_event_listener: %s ' %(str(e)))
@@ -194,11 +199,15 @@ class DOMAnalyzer:
 				#logger.debug('UnicodeDecodeError failed encoding utf-8')
 				rs = script				
 		except Exception as e:
-			logger.error(' %s failed encoding script: %s' %(e.__class__.__name__, str(e)))
+			logger.error(' [ERROR] %s failed encoding script:%s %s' %(e.__class__.__name__, str(script), str(e)))
+			logger.error("  detailed information", exc_info=True)
+			#raise
 		return rs
 
 	# TODO: not implemented
 	def _check_url(self, url):
+		return True
+		'''
 		try:
 			domain = self._get_effective_domain(url)
 			logger.debug('_check_url: find domain: %s' %(domain))
@@ -209,9 +218,12 @@ class DOMAnalyzer:
 				return True
 		except Exception as e:
 			return False
+		'''
 
 	# TODO: not implemented
 	def _check_inline_script(self, content):
+		return True
+		'''
 		t1 = time.time()
 		domain = self._get_effective_domain(self.url)
 		if domain in self.trees and not self.enable_update:
@@ -245,13 +257,14 @@ class DOMAnalyzer:
 		#	return content
 		#else:
 		#	return '\r\n'.join(allowed)
+		'''
 
 	def _write_external_script(self, file_name, contents):
 		try:
 			full_path = os.path.join(self.dest_dir, file_name)
 			rs = self._encode_script(contents)
 			if rs == None:
-				logger.error('_write_external_script failed: encoding contents failed')
+				logger.error('  [ERROR] _write_external_script failed: encoding contents failed')
 				return False
 			fw = open(full_path, 'w')
 			fw.write("// CSP-Applier: Script - " + self.url + " \r\n")
@@ -259,7 +272,7 @@ class DOMAnalyzer:
 			fw.close()
 			return True
 		except Exception as e:
-			logger.error('_write_external_script failed: %s' %str(e))
+			logger.error('  [ERROR] _write_external_script failed: %s' %str(e))
 			return False
 
 	def _get_effective_domain(self, url):
@@ -269,7 +282,7 @@ class DOMAnalyzer:
 			o = no_fetch_extract(url)
 			return o.domain + '.' + o.suffix
 		except Exception as e:
-			logger.error("error in getting getEffectiveDomain %s" %str(e))
+			logger.error("  [ERROR]error in getting getEffectiveDomain %s" %str(e))
 			return None
 
 def main():
